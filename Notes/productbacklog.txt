@@ -1,0 +1,37 @@
+epic 1: User & driver managament 
+As a driver, I want to create an account so that my data is saved sepretaley.
+SP: 3(small)
+priority :high
+Acceptance criteria: Driver can register with name and password. data stored in DB
+2.As a driver, I want to log in so I can acces my saved deliveres and expenses 
+SP: 3
+priority: high
+Epic 2: Income tracking 
+3. As a driver, I want to reac a delivery with earnins and tips so I can track my income.
+SP:5
+priority: high
+acceptance criteria: User can add delivery date, amount earned, tups: data saved in DB
+4.As a driver, I want to view a list of all my deliveries so I can review my past earnings.
+SP:3
+priority: high
+Acceptance criteria: Deliveries are retrieved from DB and displayed.
+Epic 3: Expense Tracking
+5. As a driver ,I want to trecord expenses(gas,maintenance, etc...) so I can track cost
+6. As a driver , I want to update or delete an expense so I can fix mistakes. 
+SP:5
+priority medium
+aCCEPTANCE cRITERIA: db SUPPORTS UPDATE AND DELETE OPERATIONS
+EPIC 4: FINANCIAL rEPORTING 
+7. as a driver< I want to see my total income, expenses, and net profit so I undertsnad my finances.
+SP:8 
+priority: high 
+Acceptance criteria: Query calculates totals and siaplays results.
+8. As a driver, I want to generate a monthly summary report so I can see patterns. 
+SP: 8
+priority: medium 
+acceptance criteria: report group data by month with plans to lower and increase range of data displayed
+Epic 5: strech freatures 
+As a driver I want to categorize expenses so I can see where my money goes and display in graphs so its easier to digest
+sp: 5
+priority low
+10. As a driver , I want to track mileage so I can caluctale wear and tear and potenial tax deductions. 
