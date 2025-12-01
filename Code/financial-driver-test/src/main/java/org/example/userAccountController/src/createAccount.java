@@ -9,14 +9,15 @@ import java.util.UUID;
 public class createAccount {
     private String username;
     private String password; //  TODO: store passwords in hashes later
-
+    private String email;
     // Constructors
 
 
-    public createAccount(String username, String password) {
+    public createAccount(String username, String password, String email) {
 
         this.username = username;
         this.password = password;
+        this.email = email;
     }
 
     // Getters and Setters
@@ -26,6 +27,9 @@ public class createAccount {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 }
 
 // 2. The Service Class
@@ -40,7 +44,7 @@ class createAccountService {
      * Main method to be called by your Swing UI.
      * Validates input and creates the account.
      */
-    public boolean attemptAccountCreation(String username, String password) {
+    public boolean attemptAccountCreation(String username, String password, String email) {
         // 1. Validation Logic
         if (username == null || username.trim().isEmpty()) {
             System.out.println("Error: Username cannot be empty.");
@@ -51,6 +55,10 @@ class createAccountService {
             return false;
         }
 
+        if (username == null || email.trim().isEmpty()) {
+            System.out.println("Error: Username cannot be empty.");
+            return false;
+        }
 
         // 2. Check if user already exists (requires DAO method)
          if (accountDAO.findByUsername(username) != null) { return false; }
@@ -59,7 +67,7 @@ class createAccountService {
         String uniqueID = UUID.randomUUID().toString();
 
         // 4. Create Model
-        createAccount newAccount = new createAccount(username, password);
+        createAccount newAccount = new createAccount(username, password, email);
 
         // 5. Persist to DB
         try {

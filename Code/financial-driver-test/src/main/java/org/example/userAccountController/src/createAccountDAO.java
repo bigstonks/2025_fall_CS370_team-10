@@ -21,7 +21,8 @@ public class createAccountDAO {
                 (ResultSet rs, int rowNum) -> new createAccount(
 
                     rs.getString("userName"),
-                    rs.getString("password")
+                    rs.getString("password"),
+                        rs.getString("emailAddress")
                 ));
         } catch (EmptyResultDataAccessException e) {
             return null; 
@@ -29,7 +30,7 @@ public class createAccountDAO {
     }
 
     public void create(createAccount account) {
-        // Removed accountID and accountType from INSERT
+
         String sql = "INSERT INTO userAccount (userName, password, emailAddress) VALUES (?, ?, ?)";
         jdbcTemplate.update(sql, 
             account.getUsername(), 
