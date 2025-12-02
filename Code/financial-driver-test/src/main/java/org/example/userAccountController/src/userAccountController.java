@@ -14,11 +14,12 @@ public class userAccountController {
 
     /**
      * Handles the login request from the UI.
+     *
      * @param username Input username
      * @param password Input password
      * @return true if login successful, false otherwise
      */
-    public boolean handleLoginRequest(String username, String password, String email) {
+    public boolean handleLoginRequest(String username, String password) {
         System.out.println("Attempting login for user: " + username);
         return loginService.validateLogin(username, password);
     }
