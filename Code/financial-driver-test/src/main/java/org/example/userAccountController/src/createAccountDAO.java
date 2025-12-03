@@ -35,7 +35,7 @@ public class createAccountDAO {
         jdbcTemplate.update(sql, 
             account.getUsername(), 
             account.getPassword(), 
-            "user@example.com" // Placeholder for email
+            account.getEmail() // Placeholder for email
         );
     }
 }
