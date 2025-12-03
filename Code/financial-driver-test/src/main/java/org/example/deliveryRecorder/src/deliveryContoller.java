@@ -10,6 +10,7 @@ public class deliveryContoller {
     // The DAO handles database interactions
     @Autowired
     private deliveryDataServiceDAO deliveryDAO;
+    private long jobsId;
 
     // The Overview handles the current session/workday state
     private final deliveryJobOverview jobOverview;
@@ -43,7 +44,7 @@ public class deliveryContoller {
 
         // 2. Use DAO to persist
         try {
-            deliveryDAO.saveDelivery(form);
+            deliveryDAO.saveDelivery(form, jobsId);
             System.out.println("Delivery saved to Database.");
             return true;
         } catch (Exception e) {

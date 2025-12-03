@@ -21,6 +21,7 @@ public class deliveryDataFormService {
     private int timeSpentWaitingAtRestaurant; // In minutes
     private String restaurant;
 
+
     // --- Getters and Setters (Fixed Logic) ---
 
     public void setDateTime(long dateTime) {
@@ -137,40 +138,22 @@ public class deliveryDataFormService {
             // Call to DAO would go here
             System.out.println("Data saved successfully for restaurant: " + form.restaurant);
         }
-    public boolean createDeliveryDetails(long jobId) {
-        this.jobId = jobId;
-
+    public boolean createDeliveryDetails(long jobsId) {
         String validationError = validateDelivery();
         if (validationError != null) {
             System.out.println("Validation Error: " + validationError);
             return false;
         }
 
-        if (deliveryDataDAO.insertDeliveryData(
-                jobId,
-                dateTime,
-                milesDriven,
-                basePay,
-                expenses,
-                platform,
-                totalTimeSpent,
-                fromTo,
-                timeSpentWaitingAtRestaurant,
-                restaurant)) {
-            System.out.println("Delivery details inserted into database for job ID: " + jobId);
+        try {
+            deliveryDataDAO.saveDelivery(this, jobsId);
+            System.out.println("Delivery details inserted into database for job ID: " + jobsId);
             return true;
-        } else {
+        } catch (Exception e) {
             System.out.println("Failed to insert delivery details into database.");
+            e.printStackTrace();
             return false;
         }
     }
-
-    public long getJobId() {
-        return jobId;
-    }
-
-    public void setJobId(long jobId) {
-        this.jobId = jobId;
-    }
-    }
+}
 

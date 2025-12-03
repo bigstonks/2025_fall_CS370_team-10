@@ -3,14 +3,24 @@ package org.example.deliveryRecorder.src;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
+/**
+ * A class to group multiple deliveries together as a work period containing common information.
+ * It manages work period data and can add delivery details to the database.
+ */
 @Service
 public class workPeriodService {
 
     @Autowired
-    private workPeriodServiceDAO formDefinitonServiceDAO;
+    private workPeriodServiceDAO workPeriodDAO;
 
+    @Autowired
+    private deliveryDataServiceDAO deliveryDataDAO;
+
+    private long jobsId = -1; // Auto-generated ID from database
     private String vehicle;
     private int totalVehicleMiles;
     private int vehicleMPG;
@@ -18,16 +28,59 @@ public class workPeriodService {
     private int startTime;
     private int endTime;
 
-    public void addJobLog(deliveryDataFormService form) {
-        if (formDefinitonServiceDAO.insertJob(form)) {
-            System.out.println("Job log added successfully.");
+    private List<deliveryDataFormService> deliveries = new ArrayList<>();
+
+    /**
+     * Creates a new work period in the database and stores the generated ID.
+     * @return The generated jobsId, or -1 if failed
+     */
+    public long createWorkPeriod() {
+        this.jobsId = workPeriodDAO.insertWorkPeriod(this);
+        if (jobsId != -1) {
+            System.out.println("Work period created successfully with ID: " + jobsId);
         } else {
-            System.out.println("Failed to add job log.");
+            System.out.println("Failed to create work period.");
+        }
+        return jobsId;
+    }
+
+    /**
+     * Adds a new delivery to this work period.
+     * @param delivery The delivery details to add
+     * @return true if successful, false otherwise
+     */
+    public boolean addDelivery(deliveryDataFormService delivery) {
+        if (jobsId == -1) {
+            System.out.println("Error: Work period must be created first. Call createWorkPeriod().");
+            return false;
+        }
+
+        String validationError = delivery.validateDelivery();
+        if (validationError != null) {
+            System.out.println("Validation Error: " + validationError);
+            return false;
+        }
+
+        if (deliveryDataDAO.saveDelivery(delivery, jobsId)) {
+            deliveries.add(delivery);
+            System.out.println("Delivery added to work period ID: " + jobsId);
+            return true;
+        } else {
+            System.out.println("Failed to add delivery to database.");
+            return false;
         }
     }
 
-    public void deleteJobLog() {
-        // TODO: Implement deletion logic
+    public void deleteWorkPeriod() {
+        if (jobsId != -1) {
+            workPeriodDAO.deleteWorkPeriod(jobsId);
+        }
+    }
+
+    // --- Getters and Setters ---
+
+    public long getJobsId() {
+        return jobsId;
     }
 
     public void setVehicle(String vehicle) {
@@ -36,19 +89,6 @@ public class workPeriodService {
 
     public void setTotalVehicleMiles(int miles) {
         this.totalVehicleMiles = miles;
-    }
-
-    public String editJobLog() {
-        // TODO: Implement edit logic and return status message
-        return "Job log updated.";
-    }
-
-    public int timeWaiting() {
-        return 0;
-    }
-
-    public void setPendingPayout() {
-        // TODO: Implement pending payout logic
     }
 
     public void setEndTime(int time) {
@@ -91,82 +131,7 @@ public class workPeriodService {
         return endTime;
     }
 
-    public void createNewJob(Scanner scanner) {
-        if (scanner == null) {
-            System.out.println("Scanner not provided.");
-            return;
-        }
-
-        System.out.println("\n--- Enter Job Details ---");
-        deliveryDataFormService form = new deliveryDataFormService();
-
-        try {
-            System.out.print("Enter date and time (timestamp in milliseconds): ");
-            String dt = scanner.nextLine().trim();
-            if (!dt.isEmpty()) {
-                form.setDateTime(Long.parseLong(dt));
-            }
-
-            System.out.print("Enter miles driven: ");
-            String miles = scanner.nextLine().trim();
-            if (!miles.isEmpty()) {
-                form.setMilesDriven((int) Double.parseDouble(miles));
-            }
-
-            System.out.print("Enter base pay: ");
-            String basePay = scanner.nextLine().trim();
-            if (!basePay.isEmpty()) {
-                form.setBasePay(Float.parseFloat(basePay));
-            }
-
-            System.out.print("Enter extra expenses: ");
-            String expenses = scanner.nextLine().trim();
-            if (!expenses.isEmpty()) {
-                form.setExpenses(Float.parseFloat(expenses));
-            }
-
-            System.out.print("Enter platform (e.g., DoorDash, Uber Eats): ");
-            String platform = scanner.nextLine().trim();
-            if (!platform.isEmpty()) {
-                form.setPlatform(platform);
-            }
-
-            System.out.print("Enter total time spent (minutes): ");
-            String totalTime = scanner.nextLine().trim();
-            if (!totalTime.isEmpty()) {
-                form.setTotalTimeSpent(Integer.parseInt(totalTime));
-            }
-
-            System.out.print("Enter time spent waiting at restaurant (minutes): ");
-            String waitTime = scanner.nextLine().trim();
-            if (!waitTime.isEmpty()) {
-                form.setTimeSpentWaitingAtRestaurant(Integer.parseInt(waitTime));
-            }
-
-            System.out.print("Enter restaurant name: ");
-            String restaurant = scanner.nextLine().trim();
-            if (!restaurant.isEmpty()) {
-                form.setRestaurant(restaurant);
-            }
-
-            // New: prompt for start and end times (integers)
-            System.out.print("Enter start time (int, e.g. minutes since midnight): ");
-            String st = scanner.nextLine().trim();
-            if (!st.isEmpty()) {
-                setStartTime(Integer.parseInt(st));
-            }
-
-            System.out.print("Enter end time (int, e.g. minutes since midnight): ");
-            String et = scanner.nextLine().trim();
-            if (!et.isEmpty()) {
-                setEndTime(Integer.parseInt(et));
-            }
-        } catch (NumberFormatException nfe) {
-            System.out.println("Invalid numeric input. Aborting job creation.");
-            return;
-        }
-
-        addJobLog(form);
+    public List<deliveryDataFormService> getDeliveries() {
+        return deliveries;
     }
-
 }
