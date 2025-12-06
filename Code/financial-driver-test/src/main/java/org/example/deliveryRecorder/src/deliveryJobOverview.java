@@ -17,7 +17,7 @@ public class deliveryJobOverview {
     private long shiftEndTime;
     
     // List of completed delivery jobs for this session
-    private List<deliveryDataFormService> completedJobs;
+    private List<deliveryDataService> completedJobs;
     
     // Reference to the service that defines/saves the data
     private workPeriodService formService;
@@ -95,7 +95,7 @@ public class deliveryJobOverview {
 
         System.out.println("Select a job ID (0 to " + (completedJobs.size() - 1) + "):");
         for (int i = 0; i < completedJobs.size(); i++) {
-            deliveryDataFormService job = completedJobs.get(i);
+            deliveryDataService job = completedJobs.get(i);
             System.out.println(i + ": " + job.getRestaurant() + " (" + job.getPlatform() + ") - $" + job.getBasePay());
         }
 
@@ -103,7 +103,7 @@ public class deliveryJobOverview {
         int choice = scanner.nextInt();
 
         if (choice >= 0 && choice < completedJobs.size()) {
-            deliveryDataFormService selected = completedJobs.get(choice);
+            deliveryDataService selected = completedJobs.get(choice);
             System.out.println("Selected Job: " + selected.getRestaurant());
             System.out.println("Pay: $" + selected.getBasePay());
             // Add more details as needed

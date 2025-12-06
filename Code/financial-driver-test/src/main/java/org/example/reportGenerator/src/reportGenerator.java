@@ -1,5 +1,9 @@
+package org.example.reportGenerator.src;
 import java.util.Scanner;
 public class reportGenerator {
+    private int revenue;
+    private int expenses;
+
     public void insertIncomeData() {
         Scanner input = new Scanner(System.in);
 
@@ -32,6 +36,8 @@ public class reportGenerator {
     public void getGeneralReportsData(){
 
     }
+
+
 
 
 }

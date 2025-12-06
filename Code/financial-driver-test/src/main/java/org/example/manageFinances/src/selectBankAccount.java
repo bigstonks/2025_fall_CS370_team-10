@@ -24,7 +24,9 @@ public class selectBankAccount {
         this.otherIncome = otherIncome;
         this.interestRate = interestRate; // Default 2%
         this.accountFees = accountFees;
-        this.accountName = accountName;// Default fee
+        this.accountName = accountName;
+
+        // Default fee
     }
 
     // Getters

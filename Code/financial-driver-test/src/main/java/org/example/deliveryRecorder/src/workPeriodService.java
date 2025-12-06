@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 /**
  * A class to group multiple deliveries together as a work period containing common information.
@@ -25,17 +24,18 @@ public class workPeriodService {
     private int totalVehicleMiles;
     private int vehicleMPG;
     private int totalHoursWorked;
-    private int startTime;
-    private int endTime;
+    private long startTime; // changed to long to match DB
+    private long endTime;   // changed to long to match DB
 
-    private List<deliveryDataFormService> deliveries = new ArrayList<>();
+    private List<deliveryDataService> deliveries = new ArrayList<>();
 
     /**
-     * Creates a new work period in the database and stores the generated ID.
+     * Creates a new work period in the database for the specified user and stores the generated ID.
+     * @param userId the user to associate the work period with
      * @return The generated jobsId, or -1 if failed
      */
-    public long createWorkPeriod() {
-        this.jobsId = workPeriodDAO.insertWorkPeriod(this);
+    public long createWorkPeriod(int userId) {
+        this.jobsId = workPeriodDAO.insertWorkPeriod(this, userId);
         if (jobsId != -1) {
             System.out.println("Work period created successfully with ID: " + jobsId);
         } else {
@@ -49,7 +49,7 @@ public class workPeriodService {
      * @param delivery The delivery details to add
      * @return true if successful, false otherwise
      */
-    public boolean addDelivery(deliveryDataFormService delivery) {
+    public boolean addDelivery(deliveryDataService delivery) {
         if (jobsId == -1) {
             System.out.println("Error: Work period must be created first. Call createWorkPeriod().");
             return false;
@@ -91,11 +91,11 @@ public class workPeriodService {
         this.totalVehicleMiles = miles;
     }
 
-    public void setEndTime(int time) {
+    public void setEndTime(long time) {
         this.endTime = time;
     }
 
-    public void setStartTime(int time) {
+    public void setStartTime(long time) {
         this.startTime = time;
     }
 
@@ -123,15 +123,15 @@ public class workPeriodService {
         return totalHoursWorked;
     }
 
-    public int getStartTime() {
+    public long getStartTime() {
         return startTime;
     }
 
-    public int getEndTime() {
+    public long getEndTime() {
         return endTime;
     }
 
-    public List<deliveryDataFormService> getDeliveries() {
+    public List<deliveryDataService> getDeliveries() {
         return deliveries;
     }
 }

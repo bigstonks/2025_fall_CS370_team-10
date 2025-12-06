@@ -20,22 +20,21 @@ public class workPeriodServiceDAO {
      * @param workPeriod The workPeriodService object containing work period details
      * @return The auto-generated job ID, or -1 if insertion failed
      */
-    public long insertWorkPeriod(workPeriodService workPeriod) {
-        String sql = "INSERT INTO JobsTable (" +
-                "startTime, endTime, vehicle, totalVehicleMiles, vehicleMPG, totalHoursWorked" +
-                ") VALUES (?, ?, ?, ?, ?, ?)";
+    public long insertWorkPeriod(workPeriodService workPeriod, int userId) {
+        String sql = "INSERT INTO JobsTable (userId, startTime, endTime, vehicle, totalVehicleMiles, vehicleMPG, totalHoursWorked) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         try {
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-                ps.setInt(1, workPeriod.getStartTime());
-                ps.setInt(2, workPeriod.getEndTime());
-                ps.setString(3, workPeriod.getVehicle());
-                ps.setInt(4, workPeriod.getTotalVehicleMiles());
-                ps.setInt(5, workPeriod.getVehicleMPG());
-                ps.setInt(6, workPeriod.getTotalHoursWorked());
+                ps.setInt(1, userId);
+                ps.setLong(2, workPeriod.getStartTime());
+                ps.setLong(3, workPeriod.getEndTime());
+                ps.setString(4, workPeriod.getVehicle());
+                ps.setInt(5, workPeriod.getTotalVehicleMiles());
+                ps.setInt(6, workPeriod.getVehicleMPG());
+                ps.setInt(7, workPeriod.getTotalHoursWorked());
                 return ps;
             }, keyHolder);
 
@@ -90,7 +89,7 @@ public class workPeriodServiceDAO {
         }
     }
 
-    public boolean saveDelivery(deliveryDataFormService form, long jobsId) {
+    public boolean saveDelivery(deliveryDataService form, long jobsId) {
         String sql = "INSERT INTO deliveryData(" +
                 "time, miles, basePay, extraExpenses, platform, " +
                 "totalTimeSpent, timeSpentWaiting, resturant, jobsTableId" +
@@ -98,13 +97,13 @@ public class workPeriodServiceDAO {
 
         try {
             int rows = jdbcTemplate.update(sql,
-                    form.getDateTime(),
+                    form.getDateTimeStart(),
                     form.getMilesDriven(),
                     form.getBasePay(),
                     form.getExpenses(),
                     form.getPlatform(),
                     form.getTotalTimeSpent(),
-                    form.getTimeSpentWaitingAtRestaurant(),
+                    form.getMinutesSpentWaitingAtResturant(),
                     form.getRestaurant(),
                     jobsId
             );

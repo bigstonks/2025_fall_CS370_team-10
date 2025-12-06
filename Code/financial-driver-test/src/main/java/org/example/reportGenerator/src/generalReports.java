@@ -1,4 +1,5 @@
-package src.generalReports;
+package org.example.reportGenerator.src;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,8 +47,5 @@ public class generalReports {
         return reportDAO.getCurrentMonthDeliveryIncome();
     }
 
-    public car car
-        {
 
-    }
 }

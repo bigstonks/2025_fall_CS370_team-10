@@ -10,7 +10,7 @@ public class addBankAccount {
     private addBankAccountDAO addBankAccountDAO;
 
     // Fields aligned with 'bankAccount' table in the database
-    private int userId;
+
     private String accountName; // Present in delivery.db schema
     private String accountType;
     private double balance;
@@ -32,7 +32,7 @@ public class addBankAccount {
     public boolean createNewBankAccount(String ownerUsername, String accountName, String accountType,
                                         double initialBalance, double interestRate, double accountFees, double otherIncome) {
         // 1. Set the local fields
-        this.ownerUsername = ownerUsername;
+
         this.accountName = accountName;
         this.accountType = accountType;
         this.balance = initialBalance;
@@ -65,8 +65,8 @@ public class addBankAccount {
 
     // Getters and Setters matching Database Columns
 
-    public int getUserId() { return userId; }
-    public void setUserId(int userId) { this.userId = userId; }
+   // public int getUserId() { return userId; }
+   // public void setUserId(int userId) { this.userId = userId; }
 
     public String getAccountName() { return accountName; }
     public void setAccountName(String accountName) { this.accountName = accountName; }

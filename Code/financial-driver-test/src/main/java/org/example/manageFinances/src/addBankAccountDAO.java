@@ -1,36 +1,36 @@
 package org.example.manageFinances.src;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+@Repository
 public class addBankAccountDAO {
-    public class bankAccountDAO {
-        @Autowired
-        private JdbcTemplate jdbcTemplate;
 
-        public selectBankAccount findById(long id) {
-            String sql = "SELECT * FROM bank_account WHERE id = ?";
-            return jdbcTemplate.queryForObject(sql, new Object[]{id},
-                    (rs, rowNum) -> new BankAccount(
-                            rs.getLong("id"),
-                            rs.getString("account_number"),
-                            rs.getDouble("balance")
-                    )
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    /**
+     * Saves a new bank account to the database.
+     * @param account the addBankAccount object containing account details
+     * @return true if the account was saved successfully, false otherwise
+     */
+    public boolean saveNewAccount(addBankAccount account) {
+        String sql = "INSERT INTO bankAccount (accountName, accountType, balance, interestRate, accountFees, otherIncome) " +
+                     "VALUES (?, ?, ?, ?, ?, ?)";
+        try {
+            int rowsAffected = jdbcTemplate.update(sql,
+                    account.getAccountName(),
+                    account.getAccountType(),
+                    account.getBalance(),
+                    account.getInterestRate(),
+                    account.getAccountFees(),
+                    account.getOtherIncome()
             );
-        }
-
-        public void updateBalance(long id, double newBalance) {
-            String sql = "UPDATE bank_account SET balance = ? WHERE id = ?";
-            jdbcTemplate.update(sql, newBalance, id);
-        }
-        public interface BankAccountDAO {
-            selectBankAccount findById(long id);
-            selectBankAccount findByAccountNumber(String accountNumber);
-            void updateBalance(long id, double newBalance);
-            void addExpselectAccount account);
-            void create(selectBankAccount account);
-            void delete(long id);
-        }
-        public interface BankAccountRepository extends JpaRepository<BankAccount, Long> {
-            Optional<selectBankAccount> findByAccountNumber(String accountNumber);
+            return rowsAffected > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
     }
-
 }

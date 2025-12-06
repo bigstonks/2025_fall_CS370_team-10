@@ -1,10 +1,15 @@
-package src;
-
+package org.example.reportGenerator.src;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDate;
+import java.sql.ResultSet;
+import java.sql.DatabaseMetaData;
+import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Repository
 public class reportDAO {
@@ -13,48 +18,106 @@ public class reportDAO {
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * Calculates total earnings from all jobs.
+     * Retrieves basePay and tips from deliveryData where the timestamp
+     * falls between the specified start and end times.
+     *
+     * @param startTime The start of the date range (inclusive)
+     * @param endTime   The end of the date range (inclusive)
+     * @return List of maps containing basePay and tips for each delivery in the range
      */
-    public float getTotalEarnings(int userId) {
-        String sql = "SELECT SUM(totalEarnings) FROM JobsTable WHERE userId = ";
-        Float total = jdbcTemplate.queryForObject(sql, new Object[]{userId}, Float.class);
-        return (total != null) ? total : 0.0f;
+    public List<Map<String, Object>> getDeliveryPayByDateRange(LocalDateTime startTime, LocalDateTime endTime) {
+        // Convert LocalDateTime to epoch milliseconds (matching the BIGINT storage format)
+        long startEpoch = startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endEpoch = endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+        String sql = "SELECT basePay, tips FROM deliveryData WHERE time BETWEEN ? AND ?";
+
+        return jdbcTemplate.queryForList(sql, startEpoch, endEpoch);
     }
 
     /**
-     * Calculates average earnings per job.
+     * Retrieves basePay and tips from deliveryData between two dates,
+     * also calculating the total for each delivery.
+     *
+     * @param startTime The start of the date range (inclusive)
+     * @param endTime   The end of the date range (inclusive)
+     * @return List of maps containing basePay, tips, and totalPay for each delivery
      */
-    public float getAverageEarnings(int userId) {
-        String sql = "SELECT AVG(totalEarnings) FROM JobsTable WHERE userId = ?";
-        Float avg = jdbcTemplate.queryForObject(sql, new Object[]{userId}, Float.class);
-        return (avg != null) ? avg : 0.0f;
+    public List<Map<String, Object>> getDeliveryPayWithTotalByDateRange(LocalDateTime startTime, LocalDateTime endTime) {
+        long startEpoch = startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endEpoch = endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+        String sql = "SELECT basePay, tips, (basePay + tips) AS totalPay " +
+                "FROM deliveryData WHERE time BETWEEN ? AND ?";
+
+        return jdbcTemplate.queryForList(sql, startEpoch, endEpoch);
     }
 
     /**
-     * Gets total income specifically from deliveries (Base Pay + Tips).
+     * Retrieves datestamps from a specified table and column.
+     * Supports both BIGINT (epoch millis) and DATE column types.
+     *
+     * @param tableName  The name of the table to query
+     * @param dateColumn The column containing datestamp values
+     * @return List of LocalDate values from the specified column
+     * @throws IllegalArgumentException if the column doesn't contain date/timestamp data
      */
-    public float getTotalDeliveryIncome() {
-        String sql = "SELECT SUM(basePay + tips) FROM deliveryData";
-        Float total = jdbcTemplate.queryForObject(sql, Float.class);
-        return (total != null) ? total : 0.0f;
+    public List<LocalDate> getDatestampsFromTable(String tableName, String dateColumn) {
+        // Validate that the column exists and contains date-compatible data
+        if (!isDateColumn(tableName, dateColumn)) {
+            throw new IllegalArgumentException(
+                    "Column '" + dateColumn + "' in table '" + tableName + "' does not contain datestamp data");
+        }
+
+        String columnType = getColumnType(tableName, dateColumn);
+        String sql;
+
+        if ("BIGINT".equalsIgnoreCase(columnType)) {
+            // Convert epoch milliseconds to date
+            sql = "SELECT DISTINCT DATE(FROM_UNIXTIME(" + dateColumn + " / 1000)) AS dateValue " +
+                    "FROM " + tableName + " WHERE " + dateColumn + " IS NOT NULL ORDER BY dateValue";
+        } else {
+            // Already a DATE type
+            sql = "SELECT DISTINCT " + dateColumn + " AS dateValue " +
+                    "FROM " + tableName + " WHERE " + dateColumn + " IS NOT NULL ORDER BY dateValue";
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            java.sql.Date sqlDate = rs.getDate("dateValue");
+            return sqlDate != null ? sqlDate.toLocalDate() : null;
+        });
     }
 
     /**
-     * Gets delivery income for the current month.
+     * Checks if the specified column contains date/timestamp data.
      */
-    public float getCurrentMonthDeliveryIncome() {
-        // Using MySQL specific date logic (start of current month)
-        String sql = "SELECT SUM(basePay + tips) FROM deliveryData WHERE time >= " +
-                "UNIX_TIMESTAMP(DATE_FORMAT(NOW() ,'%Y-%m-01')) * 1000";
-        Float total = jdbcTemplate.queryForObject(sql, Float.class);
-        return (total != null) ? total : 0.0f;
+    private boolean isDateColumn(String tableName, String columnName) {
+        String columnType = getColumnType(tableName, columnName);
+        if (columnType == null) return false;
+
+        return columnType.equalsIgnoreCase("DATE") ||
+                columnType.equalsIgnoreCase("DATETIME") ||
+                columnType.equalsIgnoreCase("TIMESTAMP") ||
+                columnType.equalsIgnoreCase("BIGINT"); // Epoch timestamps stored as BIGINT
     }
 
     /**
-     * Retrieves a raw list of all income values (for array processing if needed).
+     * Gets the SQL type of a column.
      */
-    public List<Float> getAllIncomeValues(int userId) {
-        String sql = "SELECT totalEarnings FROM JobsTable WHERE userId = ?";
-        return jdbcTemplate.queryForList(sql, new Object[]{userId}, Float.class);
+    private String getColumnType(String tableName, String columnName) {
+        try {
+            DatabaseMetaData metaData = jdbcTemplate.getDataSource().getConnection().getMetaData();
+            try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName)) {
+                if (rs.next()) {
+                    return rs.getString("TYPE_NAME");
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve column metadata", e);
+        }
+        return null;
     }
 }
+    /**
+     * Calculates total earnings from all jobs.
+     */

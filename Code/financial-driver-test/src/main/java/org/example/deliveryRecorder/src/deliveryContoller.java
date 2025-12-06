@@ -34,7 +34,7 @@ public class deliveryContoller {
      * @param form The populated form data
      * @return true if successful
      */
-    public boolean saveDeliveryRecord(deliveryDataFormService form) {
+    public boolean saveDeliveryRecord(deliveryDataService form) {
         // 1. Validate again to be safe
         String error = form.validateDelivery();
         if (error != null) {

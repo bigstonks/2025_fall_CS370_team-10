@@ -27,7 +27,7 @@ public class deliveryDataServiceDAO {
         this.jobsId = jobsId;
     }
 
-    public boolean saveDelivery(deliveryDataFormService form, long jobsId) {
+    public boolean saveDelivery(deliveryDataService form, long jobsId) {
         // Assuming we have a current job ID context.
         // For this snippet, I'll insert a placeholder job ID or pass it in.
 
@@ -36,19 +36,20 @@ public class deliveryDataServiceDAO {
 
         String sql = "INSERT INTO deliveryData(" +
                 "time, miles, basePay, extraExpenses, platform, " +
-                "totalTimeSpent, timeSpentWaiting, resturant, jobsTableId" +
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "totalTimeSpent, timeSpentWaiting, resturant,  jobsTableId, dateTimeEnd" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
-                form.getDateTime(),
+                form.getDateTimeStart(),
                 form.getMilesDriven(),
                 form.getBasePay(),
                 form.getExpenses(),
                 form.getPlatform(),
                 form.getTotalTimeSpent(),
-                form.getTimeSpentWaitingAtRestaurant(),
+                form.getMinutesSpentWaitingAtResturant(),
                 form.getRestaurant(),
-                currentJobId
+                currentJobId,
+                form.getDateTimeEnd()
         );
         return true;
     }

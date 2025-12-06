@@ -5,7 +5,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 
 @Repository
@@ -29,14 +28,23 @@ public class createAccountDAO {
         }
     }
 
+    public Integer getUserIdByUsername(String username) {
+        String sql = "SELECT userID FROM userAccount WHERE userName = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, new Object[]{username}, Integer.class);
+        } catch (EmptyResultDataAccessException e) {
+            return null; // not found
+        }
+    }
+
     public void create(createAccount account) {
 
-        String sql = "INSERT INTO userAccount (userName, password, emailAddress) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO userAccount (userName, password, emailAddress, authorization) VALUES (?, ?, ?, ?)";
         jdbcTemplate.update(sql, 
             account.getUsername(), 
-            account.getPassword(), 
-            account.getEmail() // Placeholder for email
+            account.getPassword(),
+            account.getEmail(),
+            "user"
         );
     }
 }
-
