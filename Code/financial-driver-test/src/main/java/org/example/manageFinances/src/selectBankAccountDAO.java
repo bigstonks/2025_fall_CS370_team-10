@@ -80,10 +80,10 @@ public class selectBankAccountDAO {
         jdbcTemplate.update(sql, otherIncome, accountID);
     }
 
-    public void create(selectBankAccount account) {
-        String sql = "INSERT INTO bankAccount (accountID, balance, accountType, otherIncome, accountName, interestRate, accountFees) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    public void create(addBankAccount account) {
+        String sql = "INSERT INTO bankAccount (balance, accountType, otherIncome, accountName, interestRate, accountFees) VALUES ( ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
-            account.getAccountID(),
+
             account.getBalance(),
             account.getAccountType(),
             account.getOtherIncome(),

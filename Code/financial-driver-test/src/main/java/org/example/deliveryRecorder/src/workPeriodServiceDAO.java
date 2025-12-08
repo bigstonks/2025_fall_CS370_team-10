@@ -21,7 +21,7 @@ public class workPeriodServiceDAO {
      * @return The auto-generated job ID, or -1 if insertion failed
      */
     public long insertWorkPeriod(workPeriodService workPeriod, int userId) {
-        String sql = "INSERT INTO JobsTable (userId, startTime, endTime, vehicle, totalVehicleMiles, vehicleMPG, totalHoursWorked) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO JobsTable (userId, startTime, endTime, vehicle, totalVehicleMiles, totalHoursWorked) VALUES (?, ?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -33,8 +33,7 @@ public class workPeriodServiceDAO {
                 ps.setLong(3, workPeriod.getEndTime());
                 ps.setString(4, workPeriod.getVehicle());
                 ps.setInt(5, workPeriod.getTotalVehicleMiles());
-                ps.setInt(6, workPeriod.getVehicleMPG());
-                ps.setInt(7, workPeriod.getTotalHoursWorked());
+                ps.setInt(6, workPeriod.getTotalHoursWorked());
                 return ps;
             }, keyHolder);
 
@@ -54,7 +53,7 @@ public class workPeriodServiceDAO {
      */
     public boolean updateWorkPeriod(long jobId, workPeriodService workPeriod) {
         String sql = "UPDATE JobsTable SET startTime=?, endTime=?, vehicle=?, " +
-                "totalVehicleMiles=?, vehicleMPG=?, totalHoursWorked=? WHERE id=?";
+                "totalVehicleMiles=?, totalHoursWorked=? WHERE id=?";
 
         try {
             int rows = jdbcTemplate.update(sql,
@@ -62,7 +61,6 @@ public class workPeriodServiceDAO {
                     workPeriod.getEndTime(),
                     workPeriod.getVehicle(),
                     workPeriod.getTotalVehicleMiles(),
-                    workPeriod.getVehicleMPG(),
                     workPeriod.getTotalHoursWorked(),
                     jobId
             );

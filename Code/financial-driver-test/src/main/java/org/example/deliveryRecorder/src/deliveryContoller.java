@@ -1,4 +1,4 @@
- package org.example.deliveryRecorder.src;
+package org.example.deliveryRecorder.src;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +65,7 @@ public class deliveryContoller {
     /**
      * Updates vehicle metadata for the current session.
      */
-    public void setShiftVehicle(String vehicleName, int mpg) {
-        jobOverview.setVehicleDetails(vehicleName, mpg);
+    public void setShiftVehicle(String vehicleName) {
+        jobOverview.setVehicleDetails(vehicleName);
     }
 }

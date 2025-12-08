@@ -1,4 +1,4 @@
- package org.example.deliveryRecorder.src;
+package org.example.deliveryRecorder.src;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +12,6 @@ public class deliveryJobOverview {
 
     // Metadata for the workday/shift
     private String vehicleDriven;
-    private int vehicleMPG;
     private long shiftStartTime;
     private long shiftEndTime;
     
@@ -30,12 +29,10 @@ public class deliveryJobOverview {
 
     // --- Metadata Management ---
 
-    public void setVehicleDetails(String vehicle, int mpg) {
+    public void setVehicleDetails(String vehicle) {
         this.vehicleDriven = vehicle;
-        this.vehicleMPG = mpg;
         // Sync with the service if needed
         formService.setVehicle(vehicleDriven);
-        formService.setVehicleMPG(vehicleMPG);
     }
 
     public void endShift() {
@@ -93,7 +90,7 @@ public class deliveryJobOverview {
             return;
         }
 
-        System.out.println("Select a job ID (0 to " + (completedJobs.size() - 1) + "):");
+        System.out.println("Select a job ID (0 to " + (completedJobs.size() - 1) + "): ");
         for (int i = 0; i < completedJobs.size(); i++) {
             deliveryDataService job = completedJobs.get(i);
             System.out.println(i + ": " + job.getRestaurant() + " (" + job.getPlatform() + ") - $" + job.getBasePay());

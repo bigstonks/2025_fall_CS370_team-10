@@ -49,7 +49,7 @@ public class manageFinancesController {
     }
 
     @GetMapping("/accounts/details/{accountId}")
-    public ResponseEntity<selectBankAccount> getAccountById(@PathVariable long accountId) {
+    public ResponseEntity<selectBankAccount> getAccountById(@PathVariable String accountId) {
         selectBankAccount account = selectBankAccountDAO.findById(accountId);
         if (account != null) {
             return ResponseEntity.ok(account);
@@ -60,8 +60,8 @@ public class manageFinancesController {
 
     @PutMapping("/accounts/{accountId}/balance")
     public ResponseEntity<String> updateAccountBalance(
-            @PathVariable long accountId,
-            @RequestParam double newBalance) {
+            @PathVariable String accountId,
+            @RequestParam float newBalance) {
 
         selectBankAccountDAO.updateBalance(accountId, newBalance);
         return ResponseEntity.ok("Balance updated successfully");
@@ -97,7 +97,7 @@ public class manageFinancesController {
 
     @PostMapping("/accounts/{accountId}/deposit")
     public ResponseEntity<String> deposit(
-            @PathVariable long accountId,
+            @PathVariable String accountId,
             @RequestParam float amount) {
 
         selectBankAccount account = selectBankAccountDAO.findById(accountId);
@@ -111,7 +111,7 @@ public class manageFinancesController {
 
     @PostMapping("/accounts/{accountId}/withdraw")
     public ResponseEntity<String> withdraw(
-            @PathVariable long accountId,
+            @PathVariable String accountId,
             @RequestParam float amount) {
 
         selectBankAccount account = selectBankAccountDAO.findById(accountId);
@@ -124,7 +124,7 @@ public class manageFinancesController {
     }
 
     @PostMapping("/accounts/{accountId}/apply-fees")
-    public ResponseEntity<String> applyMonthlyFees(@PathVariable long accountId) {
+    public ResponseEntity<String> applyMonthlyFees(@PathVariable String accountId) {
         selectBankAccount account = selectBankAccountDAO.findById(accountId);
         if (account != null) {
             account.applyMonthlyFees();

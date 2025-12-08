@@ -22,7 +22,6 @@ public class workPeriodService {
     private long jobsId = -1; // Auto-generated ID from database
     private String vehicle;
     private int totalVehicleMiles;
-    private int vehicleMPG;
     private int totalHoursWorked;
     private long startTime; // changed to long to match DB
     private long endTime;   // changed to long to match DB
@@ -103,10 +102,6 @@ public class workPeriodService {
         this.totalHoursWorked = hours;
     }
 
-    public void setVehicleMPG(int mpg) {
-        this.vehicleMPG = mpg;
-    }
-
     public String getVehicle() {
         return vehicle;
     }
@@ -115,9 +110,6 @@ public class workPeriodService {
         return totalVehicleMiles;
     }
 
-    public int getVehicleMPG() {
-        return vehicleMPG;
-    }
 
     public int getTotalHoursWorked() {
         return totalHoursWorked;

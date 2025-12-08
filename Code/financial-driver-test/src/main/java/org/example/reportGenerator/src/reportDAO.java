@@ -10,6 +10,8 @@ import java.sql.DatabaseMetaData;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.DayOfWeek;
+import java.time.Instant;
 
 @Repository
 public class reportDAO {
@@ -117,7 +119,84 @@ public class reportDAO {
         }
         return null;
     }
-}
+
     /**
-     * Calculates total earnings from all jobs.
+     * Retrieves basePay, tips, and timestamp from deliveryData where the timestamp
+     * falls between the specified start and end times.
+     *
+     * @param startTime The start of the date range (inclusive), must not be null
+     * @param endTime   The end of the date range (inclusive), must not be null
+     * @return List of maps containing basePay, tips, and time for each delivery in the range
+     * @throws IllegalArgumentException if startTime or endTime is null, or if startTime is after endTime
      */
+    public List<Map<String, Object>> getDeliveryPayWithTimestampByDateRange(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            throw new IllegalArgumentException("startTime and endTime must not be null");
+        }
+        if (startTime.isAfter(endTime)) {
+            throw new IllegalArgumentException("startTime must not be after endTime");
+        }
+        
+        // Consider using a fixed timezone like ZoneOffset.UTC for consistency
+        long startEpoch = startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endEpoch = endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+        String sql = "SELECT basePay, tips, time FROM deliveryData WHERE time BETWEEN ? AND ?";
+
+        return jdbcTemplate.queryForList(sql, startEpoch, endEpoch);
+    }
+
+    /**
+     * Retrieves all jobs from JobsTable with their start and end times.
+     *
+     * @return List of maps containing jobsId, userId, startTime, endTime, vehicle, and totalEarnings
+     */
+    public List<Map<String, Object>> getAllJobs() {
+        String sql = "SELECT jobsId, userId, startTime, endTime, vehicle, totalEarnings FROM JobsTable";
+        return jdbcTemplate.queryForList(sql);
+    }
+
+    /**
+     * Retrieves jobs from JobsTable within a specified date range based on startTime.
+     *
+     * @param startTime The start of the date range (inclusive)
+     * @param endTime   The end of the date range (inclusive)
+     * @return List of maps containing job data
+     */
+    public List<Map<String, Object>> getJobsByDateRange(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            throw new IllegalArgumentException("startTime and endTime must not be null");
+        }
+        if (startTime.isAfter(endTime)) {
+            throw new IllegalArgumentException("startTime must not be after endTime");
+        }
+
+        long startEpoch = startTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endEpoch = endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+        String sql = "SELECT jobsId, userId, startTime, endTime, vehicle, totalEarnings FROM JobsTable WHERE startTime BETWEEN ? AND ?";
+        return jdbcTemplate.queryForList(sql, startEpoch, endEpoch);
+    }
+
+    /**
+     * Retrieves the start times of all jobs from JobsTable.
+     *
+     * @return List of start times as Long values (epoch milliseconds)
+     */
+    public List<Long> getJobStartTimes() {
+        String sql = "SELECT startTime FROM JobsTable WHERE startTime IS NOT NULL ORDER BY startTime";
+        return jdbcTemplate.queryForList(sql, Long.class);
+    }
+
+    /**
+     * Retrieves the earliest and latest job start times from the JobsTable.
+     *
+     * @return Map containing "minStartTime" and "maxStartTime" as Long values (epoch milliseconds)
+     */
+    public Map<String, Object> getJobStartTimeRange() {
+        String sql = "SELECT MIN(startTime) as minStartTime, MAX(startTime) as maxStartTime FROM JobsTable WHERE startTime IS NOT NULL";
+        return jdbcTemplate.queryForMap(sql);
+    }
+
+
+}

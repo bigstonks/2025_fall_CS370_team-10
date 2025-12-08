@@ -1,4 +1,4 @@
-package manageFinances.src;
+package org.example.manageFinances.src;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;

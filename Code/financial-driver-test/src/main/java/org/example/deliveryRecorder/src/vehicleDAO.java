@@ -22,7 +22,6 @@ public class vehicleDAO {
                     vehicle v = new vehicle();
                     v.setVehicleType(rs.getString("vehicleType"));
                     v.setVehicleModel(rs.getString("vehicleModel"));
-                    v.setVehicleMPG(rs.getInt("vehicleMPG"));
                     v.setCurrentVehicleDriven(rs.getString("currentVehicleDriven"));
                     v.setCurrentVehicleMiles(rs.getInt("currentVehicleMiles"));
                     return v;
@@ -39,7 +38,6 @@ public class vehicleDAO {
                 vehicle v = new vehicle();
                 v.setVehicleType(rs.getString("vehicleType"));
                 v.setVehicleModel(rs.getString("vehicleModel"));
-                v.setVehicleMPG(rs.getInt("vehicleMPG"));
                 v.setCurrentVehicleDriven(rs.getString("currentVehicleDriven"));
                 v.setCurrentVehicleMiles(rs.getInt("currentVehicleMiles"));
                 return v;
@@ -47,21 +45,19 @@ public class vehicleDAO {
     }
 
     public void create(vehicle v) {
-        String sql = "INSERT INTO vehicle (vehicleType, vehicleModel, vehicleMPG, currentVehicleDriven, currentVehicleMiles) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO vehicle (vehicleType, vehicleModel, currentVehicleDriven, currentVehicleMiles) VALUES (?, ?, ?, ?)";
         jdbcTemplate.update(sql,
             v.getVehicleType(),
             v.getVehicleModel(),
-            v.getVehicleMPG(),
             v.getCurrentVehicleDriven(),
             v.getCurrentVehicleMiles()
         );
     }
 
     public void update(vehicle v) {
-        String sql = "UPDATE vehicle SET vehicleType = ?, vehicleMPG = ?, currentVehicleDriven = ?, currentVehicleMiles = ? WHERE vehicleModel = ?";
+        String sql = "UPDATE vehicle SET vehicleType = ?, currentVehicleDriven = ?, currentVehicleMiles = ? WHERE vehicleModel = ?";
         jdbcTemplate.update(sql,
             v.getVehicleType(),
-            v.getVehicleMPG(),
             v.getCurrentVehicleDriven(),
             v.getCurrentVehicleMiles(),
             v.getVehicleModel()

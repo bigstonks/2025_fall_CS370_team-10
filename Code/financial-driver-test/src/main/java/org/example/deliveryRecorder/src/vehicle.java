@@ -3,7 +3,6 @@ package org.example.deliveryRecorder.src;
 public class vehicle {
     private String vehicleType;
     private String vehicleModel;
-    private int vehicleMPG;
     private String currentVehicleDriven;
     private int currentVehicleMiles;
     private int startingVehicleMiles;
@@ -32,17 +31,18 @@ public class vehicle {
     public void setVehicleModel(String vehicleModel) {
         this.vehicleModel = vehicleModel;
     }
-    public int getVehicleMPG() {
-        return vehicleMPG;
-    }
-    public void setVehicleMPG(int vehicleMPG) {
-        this.vehicleMPG = vehicleMPG;
+
+    /**
+     * Returns the current vehicle identifier (model).
+     * This replaces the previous vehicleMPG field usage per request.
+     */
+    public String getVehicle() {
+        return this.vehicleModel;
     }
 
-    public void addNewVehicle(String vehicleType, String vehicleModel, int vehicleMPG) {
+    public void addNewVehicle(String vehicleType, String vehicleModel) {
         this.vehicleType = vehicleType;
         this.vehicleModel = vehicleModel;
-        this.vehicleMPG = vehicleMPG;
     }
 
 }
