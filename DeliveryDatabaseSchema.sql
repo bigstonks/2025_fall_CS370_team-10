@@ -150,9 +150,11 @@ ENGINE = InnoDB;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`vehicle` (
   `vehicleID` INT NOT NULL AUTO_INCREMENT,
-  `vehicleName` VARCHAR(45) NULL,
+  `vehicleType` VARCHAR(45) NULL,
+  `vehicleModel` VARCHAR(45) NULL,
+  `currentVehicleDriven` VARCHAR(10) DEFAULT 'false',
+  `currentVehicleMiles` INT DEFAULT 0,
   `mpg` INT NULL,
-  `totalVehicleMiles` INT DEFAULT 0,
   PRIMARY KEY (`vehicleID`))
 ENGINE = InnoDB;
 
