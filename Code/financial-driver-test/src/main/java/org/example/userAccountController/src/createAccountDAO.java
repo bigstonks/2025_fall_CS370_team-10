@@ -38,9 +38,8 @@ public class createAccountDAO {
     }
 
     public void create(createAccount account) {
-
         String sql = "INSERT INTO userAccount (userName, password, emailAddress, authorization) VALUES (?, ?, ?, ?)";
-        jdbcTemplate.update(sql, 
+        jdbcTemplate.update(sql,
             account.getUsername(), 
             account.getPassword(),
             account.getEmail(),

@@ -298,38 +298,95 @@ public class reportGenerator {
     /**
      * Container for delivery report data.
      */
-    public record DeliveryReportData(
-            LocalDateTime startDate,
-            LocalDateTime endDate,
-            float totalEarnings,
-            float avgEarnings,
-            int deliveryCount,
-            String optimalHours
-    ) {}
+    public static class DeliveryReportData {
+        private final LocalDateTime startDate;
+        private final LocalDateTime endDate;
+        private final float totalEarnings;
+        private final float avgEarnings;
+        private final int deliveryCount;
+        private final String optimalHours;
+
+        public DeliveryReportData(LocalDateTime startDate, LocalDateTime endDate,
+                                   float totalEarnings, float avgEarnings,
+                                   int deliveryCount, String optimalHours) {
+            this.startDate = startDate;
+            this.endDate = endDate;
+            this.totalEarnings = totalEarnings;
+            this.avgEarnings = avgEarnings;
+            this.deliveryCount = deliveryCount;
+            this.optimalHours = optimalHours;
+        }
+
+        public LocalDateTime startDate() { return startDate; }
+        public LocalDateTime endDate() { return endDate; }
+        public float totalEarnings() { return totalEarnings; }
+        public float avgEarnings() { return avgEarnings; }
+        public int deliveryCount() { return deliveryCount; }
+        public String optimalHours() { return optimalHours; }
+    }
 
     /**
      * Container for general financial report data.
      */
-    public record GeneralReportData(
-            float totalIncome,
-            float currentMonthIncome,
-            float avgPerDelivery,
-            int totalDeliveries,
-            float projectedMonthlyIncome
-    ) {}
+    public static class GeneralReportData {
+        private final float totalIncome;
+        private final float currentMonthIncome;
+        private final float avgPerDelivery;
+        private final int totalDeliveries;
+        private final float projectedMonthlyIncome;
+
+        public GeneralReportData(float totalIncome, float currentMonthIncome,
+                                  float avgPerDelivery, int totalDeliveries,
+                                  float projectedMonthlyIncome) {
+            this.totalIncome = totalIncome;
+            this.currentMonthIncome = currentMonthIncome;
+            this.avgPerDelivery = avgPerDelivery;
+            this.totalDeliveries = totalDeliveries;
+            this.projectedMonthlyIncome = projectedMonthlyIncome;
+        }
+
+        public float totalIncome() { return totalIncome; }
+        public float currentMonthIncome() { return currentMonthIncome; }
+        public float avgPerDelivery() { return avgPerDelivery; }
+        public int totalDeliveries() { return totalDeliveries; }
+        public float projectedMonthlyIncome() { return projectedMonthlyIncome; }
+    }
 
     /**
      * Container for financial plan data.
      */
-    public record FinancialPlan(
-            float targetMonthlyIncome,
-            float estimatedExpenses,
-            float projectedMonthlyIncome,
-            float projectedNetProfit,
-            float incomeGap,
-            float additionalDailyRequired,
-            String optimalSchedule,
-            String recommendations
-    ) {}
+    public static class FinancialPlan {
+        private final float targetMonthlyIncome;
+        private final float estimatedExpenses;
+        private final float projectedMonthlyIncome;
+        private final float projectedNetProfit;
+        private final float incomeGap;
+        private final float additionalDailyRequired;
+        private final String optimalSchedule;
+        private final String recommendations;
+
+        public FinancialPlan(float targetMonthlyIncome, float estimatedExpenses,
+                              float projectedMonthlyIncome, float projectedNetProfit,
+                              float incomeGap, float additionalDailyRequired,
+                              String optimalSchedule, String recommendations) {
+            this.targetMonthlyIncome = targetMonthlyIncome;
+            this.estimatedExpenses = estimatedExpenses;
+            this.projectedMonthlyIncome = projectedMonthlyIncome;
+            this.projectedNetProfit = projectedNetProfit;
+            this.incomeGap = incomeGap;
+            this.additionalDailyRequired = additionalDailyRequired;
+            this.optimalSchedule = optimalSchedule;
+            this.recommendations = recommendations;
+        }
+
+        public float targetMonthlyIncome() { return targetMonthlyIncome; }
+        public float estimatedExpenses() { return estimatedExpenses; }
+        public float projectedMonthlyIncome() { return projectedMonthlyIncome; }
+        public float projectedNetProfit() { return projectedNetProfit; }
+        public float incomeGap() { return incomeGap; }
+        public float additionalDailyRequired() { return additionalDailyRequired; }
+        public String optimalSchedule() { return optimalSchedule; }
+        public String recommendations() { return recommendations; }
+    }
 }
 
