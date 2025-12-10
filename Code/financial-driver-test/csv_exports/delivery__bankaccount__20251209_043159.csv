@@ -1,0 +1,4 @@
+idbankAccount,userId,accountType,balance,interestRate,accountFees,otherIncome,accountName
+101,1,Checking,3500.75,0.0001,5.0,150.0,
+102,1,Savings,12500.5,0.045,0.0,0.0,
+103,2,Checking,1800.9,0.0005,0.0,0.0,

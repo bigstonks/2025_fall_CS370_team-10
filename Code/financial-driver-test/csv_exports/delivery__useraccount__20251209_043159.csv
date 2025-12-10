@@ -1,0 +1,18 @@
+userID,userName,password,emailAddress,authorization
+1,alex_driver,hash123,alex.d@example.com,user
+2,beth_courier,hash456,beth.c@example.com,user
+3,charlie_admin,hash789,charliea@example.com,user
+4,testUser,password123,a@example.com,user
+5,James-the-great,password123,b@example.com,user
+6,Mark-Smith,xylophone,c@example.com,user
+7,Jack-reacher,Maisposaxaw,d@example.com,user
+8,Kelly-Martin,sillystringser,e@example.com,user
+9,jamescameraon,psasodjsafjsa,f@example.com,user
+10,jack-the-bad,123456789,g@example.com,user
+11,Hailey,posmastp,h@example.com,user
+12,Jack Carlson,Vsaksdak2,i@example.com,user
+13,James,polstergeist,j@cooler.com,user
+14,Kate,pooowrwr2,k@zes.com,user
+15,mike,jjsadfjasj,us@pob.com,user
+16,sally,oeolreooee,ves@vox.com,user
+17,mana,iiiiiiiiiiii3,jk@lol.com,user
