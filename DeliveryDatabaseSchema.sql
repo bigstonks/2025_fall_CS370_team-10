@@ -95,7 +95,7 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`expenses`
+-- Table `mydb`.`expenses` (DEPRECATED - replaced by transaction table)
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`expenses` (
   `expenseId` INT NOT NULL AUTO_INCREMENT,
@@ -108,6 +108,37 @@ CREATE TABLE IF NOT EXISTS `mydb`.`expenses` (
   INDEX `bankAccountID_idx` (`bankAccountID` ASC) VISIBLE,
   CONSTRAINT `bankAccountID_fk`
     FOREIGN KEY (`bankAccountID`)
+    REFERENCES `mydb`.`bankAccount` (`idbankAccount`)
+    ON DELETE SET NULL
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`transaction`
+-- Unified transaction table replacing expenses/income/transactions tables
+-- transactionType must be one of: 'purchase', 'withdrawal', 'delivery income', 'other income'
+-- 'purchase' and 'withdrawal' amounts should be negative
+-- 'delivery income' and 'other income' amounts should be positive
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`transaction` (
+  `transactionId` INT NOT NULL AUTO_INCREMENT,
+  `userId` INT NOT NULL,
+  `amount` DECIMAL(15, 2) NOT NULL,
+  `transactionType` VARCHAR(20) NOT NULL CHECK (transactionType IN ('purchase', 'withdrawal', 'delivery income', 'other income')),
+  `transactionDate` DATE NULL,
+  `description` VARCHAR(255) NULL,
+  `bankAccountId` INT NULL,
+  PRIMARY KEY (`transactionId`),
+  INDEX `transaction_user_idx` (`userId` ASC) VISIBLE,
+  INDEX `transaction_type_idx` (`transactionType` ASC) VISIBLE,
+  CONSTRAINT `fk_transaction_user`
+    FOREIGN KEY (`userId`)
+    REFERENCES `mydb`.`userAccount` (`userID`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_transaction_bank`
+    FOREIGN KEY (`bankAccountId`)
     REFERENCES `mydb`.`bankAccount` (`idbankAccount`)
     ON DELETE SET NULL
     ON UPDATE NO ACTION)

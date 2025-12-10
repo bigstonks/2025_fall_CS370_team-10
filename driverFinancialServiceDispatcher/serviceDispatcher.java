@@ -91,6 +91,9 @@ public class serviceDispatcher {
         @Autowired
         private generalFinancialData generalFinancialDataService;
 
+        @Autowired
+        private org.example.manageFinances.src.generalFinancialDataDAO generalFinancialDataDAO;
+
         // =========================================================
         //   REPORT GENERATOR MODULE
         // =========================================================
@@ -698,6 +701,61 @@ public class serviceDispatcher {
         public Map<String, List<Float>> getCurrentUserTransactions() {
             if (currentUserId == -1) return Map.of();
             return generalFinancialDataService.getAllTransactions(currentUserId);
+        }
+
+        /**
+         * Gets all detailed transaction records for the current user across all bank accounts.
+         * @return List of TransactionSummary objects, or empty list if not logged in.
+         */
+        public List<org.example.manageFinances.src.generalFinancialData.TransactionSummary> getCurrentUserAllTransactionDetails() {
+            if (currentUserId == -1) return List.of();
+            return generalFinancialDataService.getAllTransactionDetails(currentUserId);
+        }
+
+        /**
+         * Gets total income for the current user.
+         * @return Total income, or 0 if not logged in.
+         */
+        public float getCurrentUserTotalIncome() {
+            if (currentUserId == -1) return 0;
+            return generalFinancialDataService.getTotalIncome(currentUserId);
+        }
+
+        // =========================================================
+        //   BANK ACCOUNT-SPECIFIC TRANSACTIONS
+        // =========================================================
+
+        /**
+         * Gets all detailed transaction records for a specific bank account.
+         * @param bankAccountId The bank account ID.
+         * @return List of TransactionRecord objects.
+         */
+        public List<org.example.manageFinances.src.generalFinancialDataDAO.TransactionRecord> getTransactionsForBankAccount(int bankAccountId) {
+            return generalFinancialDataDAO.getTransactionsForBankAccount(bankAccountId);
+        }
+
+        /**
+         * Gets detailed transaction records for a bank account filtered by type.
+         * @param bankAccountId The bank account ID.
+         * @param transactionType The transaction type to filter by.
+         * @return List of TransactionRecord objects.
+         */
+        public List<org.example.manageFinances.src.generalFinancialDataDAO.TransactionRecord> getTransactionsForBankAccountByType(int bankAccountId, String transactionType) {
+            return generalFinancialDataDAO.getTransactionsForBankAccountByType(bankAccountId, transactionType);
+        }
+
+        /**
+         * Adds a transaction tied to a specific bank account for the current user.
+         * @param amount The amount.
+         * @param transactionType The transaction type.
+         * @param bankAccountId The bank account ID.
+         * @param description Optional description.
+         */
+        public void addTransactionForBankAccount(float amount, String transactionType, int bankAccountId, String description) {
+            if (currentUserId == -1) {
+                throw new IllegalStateException("User must be logged in to add transactions.");
+            }
+            generalFinancialDataDAO.addTransactionForBankAccount(currentUserId, amount, transactionType, bankAccountId, description);
         }
 
         // =========================================================

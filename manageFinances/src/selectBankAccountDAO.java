@@ -15,11 +15,11 @@ public class selectBankAccountDAO {
     private JdbcTemplate jdbcTemplate;
 
     public selectBankAccount findById(String accountID) {
-        String sql = "SELECT * FROM bankAccount WHERE accountID = ?";
+        String sql = "SELECT * FROM bankAccount WHERE idbankAccount = ?";
         try {
             return jdbcTemplate.queryForObject(sql, new Object[]{accountID},
                 (ResultSet rs, int rowNum) -> new selectBankAccount(
-                    rs.getString("accountID"),
+                    String.valueOf(rs.getInt("idbankAccount")),
                     rs.getFloat("balance"),
                     rs.getString("accountType"),
                     rs.getFloat("otherIncome"),
@@ -36,7 +36,7 @@ public class selectBankAccountDAO {
         String sql = "SELECT * FROM bankAccount WHERE userId = ?";
         return jdbcTemplate.query(sql, new Object[]{userId},
             (ResultSet rs, int rowNum) -> new selectBankAccount(
-                rs.getString("accountID"),
+                String.valueOf(rs.getInt("idbankAccount")),
                 rs.getFloat("balance"),
                 rs.getString("accountType"),
                 rs.getFloat("otherIncome"),
@@ -50,7 +50,7 @@ public class selectBankAccountDAO {
         String sql = "SELECT * FROM bankAccount";
         return jdbcTemplate.query(sql,
             (ResultSet rs, int rowNum) -> new selectBankAccount(
-                rs.getString("accountID"),
+                String.valueOf(rs.getInt("idbankAccount")),
                 rs.getFloat("balance"),
                 rs.getString("accountType"),
                 rs.getFloat("otherIncome"),
@@ -61,22 +61,22 @@ public class selectBankAccountDAO {
     }
 
     public void updateBalance(String accountID, float newBalance) {
-        String sql = "UPDATE bankAccount SET balance = ? WHERE accountID = ?";
+        String sql = "UPDATE bankAccount SET balance = ? WHERE idbankAccount = ?";
         jdbcTemplate.update(sql, newBalance, accountID);
     }
 
     public void updateInterestRate(String accountID, float interestRate) {
-        String sql = "UPDATE bankAccount SET interestRate = ? WHERE accountID = ?";
+        String sql = "UPDATE bankAccount SET interestRate = ? WHERE idbankAccount = ?";
         jdbcTemplate.update(sql, interestRate, accountID);
     }
 
     public void updateAccountFees(String accountID, float accountFees) {
-        String sql = "UPDATE bankAccount SET accountFees = ? WHERE accountID = ?";
+        String sql = "UPDATE bankAccount SET accountFees = ? WHERE idbankAccount = ?";
         jdbcTemplate.update(sql, accountFees, accountID);
     }
 
     public void updateOtherIncome(String accountID, float otherIncome) {
-        String sql = "UPDATE bankAccount SET otherIncome = ? WHERE accountID = ?";
+        String sql = "UPDATE bankAccount SET otherIncome = ? WHERE idbankAccount = ?";
         jdbcTemplate.update(sql, otherIncome, accountID);
     }
 

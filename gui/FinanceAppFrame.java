@@ -15,6 +15,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JButton;
 import javax.swing.JTextField;
@@ -180,6 +181,29 @@ public class FinanceAppFrame extends JFrame {
     private JLabel homeActivitySummaryLabel;
     private JLabel homeTopRestaurantLabel;
     private JLabel homeTopPlatformLabel;
+
+    // =========================================================
+    //   BANK ACCOUNT TAB FIELDS
+    // =========================================================
+
+    private DefaultTableModel bankAccountTableModel;
+    private DefaultTableModel bankTransactionTableModel;
+    private JLabel bankAccountIdValue;
+    private JLabel bankAccountNameValue;
+    private JLabel bankAccountTypeValue;
+    private JLabel bankAccountBalanceValue;
+    private JLabel bankTotalIncomeLabel;
+    private JLabel bankTotalExpensesLabel;
+    private JLabel bankNetLabel;
+    private JLabel bankTransactionCountLabel;
+
+    // Summary tab fields
+    private DefaultTableModel summaryTransactionTableModel;
+    private JLabel summaryAssetsValueLabel;
+    private JLabel summaryIncomeValueLabel;
+    private JLabel summaryExpensesValueLabel;
+    private JLabel summaryNetValueLabel;
+    private JLabel summaryTransactionCountLabel;
 
     // Range toggle buttons on the home screen
     private JButton homeTodayButton;
@@ -510,18 +534,21 @@ public class FinanceAppFrame extends JFrame {
         JButton overviewBtn   = createNavButton("Overview");
         JButton deliveriesBtn = createNavButton("Deliveries");
         JButton reportsBtn    = createNavButton("Reports");
+        JButton bankAccountBtn = createNavButton("Bank Account");
         JButton settingsBtn   = createNavButton("Settings");
         JButton accountBtn    = createNavButton("Account");
 
         overviewBtn.addActionListener(e -> showScreen("HOME"));
         deliveriesBtn.addActionListener(e -> showScreen("DELIVERIES"));
         reportsBtn.addActionListener(e -> showScreen("REPORTS"));
+        bankAccountBtn.addActionListener(e -> showScreen("BANK_ACCOUNT"));
         settingsBtn.addActionListener(e -> showScreen("SETTINGS"));
         accountBtn.addActionListener(e -> showScreen("ACCOUNT"));
 
         navButtonsPanel.add(overviewBtn);
         navButtonsPanel.add(deliveriesBtn);
         navButtonsPanel.add(reportsBtn);
+        navButtonsPanel.add(bankAccountBtn);
         navButtonsPanel.add(settingsBtn);
         navButtonsPanel.add(accountBtn);
 
@@ -539,6 +566,7 @@ public class FinanceAppFrame extends JFrame {
         contentPanel.add(createHomeScreen(), "HOME");
         contentPanel.add(createDeliveriesScreen(), "DELIVERIES");
         contentPanel.add(createReportsScreen(), "REPORTS");
+        contentPanel.add(createBankAccountScreen(), "BANK_ACCOUNT");
         contentPanel.add(createSettingsScreen(), "SETTINGS");
 
         main.add(contentPanel, BorderLayout.CENTER);
@@ -775,6 +803,7 @@ public class FinanceAppFrame extends JFrame {
             loadVehiclesFromDatabase(); // Load vehicles from database
             loadDeliveriesFromDatabase(); // Load past deliveries from database
             loadCurrentVehicle(); // Load and display current vehicle
+            loadBankAccountsFromDatabase(); // Load bank accounts from database
             updateHomeOverview();
             showScreen("HOME");
         } else if (serviceDispatcher == null) {
@@ -966,6 +995,64 @@ public class FinanceAppFrame extends JFrame {
     public void updateCurrentVehicleDisplay(String vehicleModel) {
         if (sidebarCurrentVehicleLabel != null && vehicleModel != null) {
             sidebarCurrentVehicleLabel.setText(vehicleModel);
+        }
+    }
+
+    /**
+     * Loads all bank accounts from the database for the current user and populates the bank account table.
+     * Called automatically on login.
+     */
+    private void loadBankAccountsFromDatabase() {
+        if (serviceDispatcher == null || !serviceDispatcher.isLoggedIn()) {
+            System.out.println("FinanceAppFrame: Cannot load bank accounts - not logged in or no dispatcher.");
+            return;
+        }
+
+        if (bankAccountTableModel == null) {
+            System.out.println("FinanceAppFrame: Bank account table model not initialized yet.");
+            return;
+        }
+
+        try {
+            List<org.example.manageFinances.src.selectBankAccount> accounts =
+                    serviceDispatcher.getCurrentUserBankAccounts();
+
+            bankAccountTableModel.setRowCount(0); // Clear table
+
+            for (org.example.manageFinances.src.selectBankAccount acc : accounts) {
+                bankAccountTableModel.addRow(new Object[]{
+                        acc.getAccountID(),
+                        acc.getAccountName(),
+                        acc.getAccountType(),
+                        String.format("$%.2f", acc.getBalance())
+                });
+            }
+
+            // Clear transactions and details
+            if (bankTransactionTableModel != null) {
+                bankTransactionTableModel.setRowCount(0);
+            }
+            if (bankAccountIdValue != null) {
+                bankAccountIdValue.setText("-");
+                bankAccountNameValue.setText("-");
+                bankAccountTypeValue.setText("-");
+                bankAccountBalanceValue.setText("-");
+            }
+            if (bankTotalIncomeLabel != null) {
+                bankTotalIncomeLabel.setText("Total Income: $0.00");
+                bankTotalExpensesLabel.setText("Total Expenses: $0.00");
+                bankNetLabel.setText("Net: $0.00");
+                bankTransactionCountLabel.setText("Transactions: 0");
+            }
+
+            System.out.println("FinanceAppFrame: Loaded " + accounts.size() + " bank account(s) from database.");
+
+            // Also load summary transactions (auto-load on login)
+            loadSummaryTransactions("All Transactions");
+
+        } catch (Exception ex) {
+            System.err.println("Error loading bank accounts: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 
@@ -2125,6 +2212,1185 @@ public class FinanceAppFrame extends JFrame {
         updateReportStats();
         updateHomeOverview();
         showAutoCloseSuccess("Demo data loaded");
+    }
+
+    // =========================================================
+    //   BANK ACCOUNT SCREEN
+    // =========================================================
+
+    /**
+     * Creates the Bank Account management screen with three tabs:
+     * - Summary: Overview of all bank accounts and financial position
+     * - Select Bank Account: View and select from existing bank accounts
+     * - Add New Bank Account: Form to create a new bank account
+     */
+    private JPanel createBankAccountScreen() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+
+        JPanel inner = new JPanel(new BorderLayout());
+        inner.setBackground(COLOR_BG_CARD);
+        inner.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel title = new JLabel("Bank Accounts");
+        title.setFont(primaryFont(Font.BOLD, 18));
+        title.setForeground(COLOR_TEXT_PRIMARY);
+        inner.add(title, BorderLayout.NORTH);
+
+        // Create tabbed pane for the three sections
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setBackground(COLOR_BG_CARD);
+        tabbedPane.setForeground(COLOR_TEXT_PRIMARY);
+        tabbedPane.setFont(primaryFont(Font.PLAIN, 13));
+
+        // Tab 1: Summary
+        tabbedPane.addTab("Summary", createBankAccountSummaryTab());
+
+        // Tab 2: Select Bank Account
+        tabbedPane.addTab("Select Bank Account", createSelectBankAccountTab());
+
+        // Tab 3: Add New Bank Account
+        tabbedPane.addTab("Add New Bank Account", createAddBankAccountTab());
+
+        inner.add(tabbedPane, BorderLayout.CENTER);
+
+        panel.add(inner, BorderLayout.CENTER);
+        return panel;
+    }
+
+    /**
+     * Creates the Summary tab for bank accounts.
+     * Displays all transactions from all bank accounts (read-only view).
+     * Uses generalFinancialData to pull transaction data.
+     * Transactions are automatically loaded on login.
+     */
+    private JPanel createBankAccountSummaryTab() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(COLOR_BG_CARD);
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 10, 10, 10));
+
+        // =========================================================
+        // TOP PANEL - Financial Summary Cards
+        // =========================================================
+        JPanel summaryCardsPanel = new JPanel(new GridLayout(1, 4, 10, 0));
+        summaryCardsPanel.setBackground(COLOR_BG_CARD);
+        summaryCardsPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+
+        // Create value labels using class fields so they can be updated externally
+        summaryAssetsValueLabel = new JLabel("$0.00");
+        summaryIncomeValueLabel = new JLabel("$0.00");
+        summaryExpensesValueLabel = new JLabel("$0.00");
+        summaryNetValueLabel = new JLabel("$0.00");
+
+        // Total Assets Card
+        JPanel assetsCard = createSummaryCardWithLabel("Total Assets", summaryAssetsValueLabel, COLOR_SUCCESS);
+
+        // Total Income Card
+        JPanel incomeCard = createSummaryCardWithLabel("Total Income", summaryIncomeValueLabel, new Color(59, 130, 246));
+
+        // Total Expenses Card
+        JPanel expensesCard = createSummaryCardWithLabel("Total Expenses", summaryExpensesValueLabel, new Color(239, 68, 68));
+
+        // Net Position Card
+        JPanel netCard = createSummaryCardWithLabel("Net Position", summaryNetValueLabel, COLOR_ACCENT);
+
+        summaryCardsPanel.add(assetsCard);
+        summaryCardsPanel.add(incomeCard);
+        summaryCardsPanel.add(expensesCard);
+        summaryCardsPanel.add(netCard);
+
+        panel.add(summaryCardsPanel, BorderLayout.NORTH);
+
+        // =========================================================
+        // CENTER PANEL - All Transactions Table
+        // =========================================================
+        JPanel centerPanel = new JPanel(new BorderLayout(5, 5));
+        centerPanel.setBackground(COLOR_BG_CARD);
+
+        // Table title
+        JLabel tableTitle = new JLabel("All Transactions (All Accounts)");
+        tableTitle.setFont(primaryFont(Font.BOLD, 14));
+        tableTitle.setForeground(COLOR_TEXT_PRIMARY);
+        tableTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+        centerPanel.add(tableTitle, BorderLayout.NORTH);
+
+        // Transactions table - read-only, use class field
+        // Column order: Description (first), Date, Type, Amount, Account
+        String[] columnNames = {"Description", "Date", "Type", "Amount", "Account"};
+        summaryTransactionTableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Read-only
+            }
+        };
+        JTable summaryTable = new JTable(summaryTransactionTableModel);
+        summaryTable.setBackground(COLOR_BG_INPUT);
+        summaryTable.setForeground(COLOR_TEXT_PRIMARY);
+        summaryTable.setSelectionBackground(COLOR_ACCENT);
+        summaryTable.setSelectionForeground(Color.BLACK);
+        summaryTable.setGridColor(COLOR_BORDER);
+        summaryTable.setRowHeight(26);
+        summaryTable.getTableHeader().setBackground(COLOR_BG_MAIN);
+        summaryTable.getTableHeader().setForeground(COLOR_TEXT_PRIMARY);
+
+        // Set column widths - Description gets more space
+        summaryTable.getColumnModel().getColumn(0).setPreferredWidth(200); // Description
+        summaryTable.getColumnModel().getColumn(1).setPreferredWidth(100); // Date
+        summaryTable.getColumnModel().getColumn(2).setPreferredWidth(120); // Type
+        summaryTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Amount
+        summaryTable.getColumnModel().getColumn(4).setPreferredWidth(80);  // Account
+
+        // Custom renderer for Amount column (index 3) to show color based on positive/negative
+        summaryTable.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    String amountStr = value != null ? value.toString() : "";
+                    if (amountStr.startsWith("-") || amountStr.startsWith("($")) {
+                        c.setForeground(new Color(239, 68, 68)); // Red for negative
+                    } else {
+                        c.setForeground(COLOR_SUCCESS); // Green for positive
+                    }
+                }
+                setHorizontalAlignment(SwingConstants.RIGHT);
+                return c;
+            }
+        });
+
+        // Custom renderer for Type column (index 2) with color coding
+        summaryTable.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    String type = value != null ? value.toString().toLowerCase() : "";
+                    if (type.contains("income")) {
+                        c.setForeground(COLOR_SUCCESS);
+                    } else if (type.equals("purchase") || type.equals("withdrawal")) {
+                        c.setForeground(new Color(239, 68, 68));
+                    } else {
+                        c.setForeground(COLOR_TEXT_PRIMARY);
+                    }
+                }
+                return c;
+            }
+        });
+
+        JScrollPane tableScroll = new JScrollPane(summaryTable);
+        tableScroll.getViewport().setBackground(COLOR_BG_INPUT);
+        centerPanel.add(tableScroll, BorderLayout.CENTER);
+
+        // Transaction count label - use class field
+        summaryTransactionCountLabel = new JLabel("Total Transactions: 0");
+        summaryTransactionCountLabel.setFont(primaryFont(Font.PLAIN, 12));
+        summaryTransactionCountLabel.setForeground(COLOR_TEXT_SECONDARY);
+        summaryTransactionCountLabel.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
+        centerPanel.add(summaryTransactionCountLabel, BorderLayout.SOUTH);
+
+        panel.add(centerPanel, BorderLayout.CENTER);
+
+        // =========================================================
+        // BOTTOM PANEL - Filter Only (transactions auto-load on login)
+        // =========================================================
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(COLOR_BG_CARD);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+
+        // Filter combo box
+        JLabel filterLabel = new JLabel("Filter by Type:");
+        filterLabel.setForeground(COLOR_TEXT_SECONDARY);
+        filterLabel.setFont(primaryFont(Font.PLAIN, 12));
+
+        String[] filterOptions = {"All Transactions", "Income Only", "Expenses Only", "Purchases", "Withdrawals", "Delivery Income", "Other Income"};
+        JComboBox<String> filterCombo = new JComboBox<>(filterOptions);
+        styleComboBox(filterCombo);
+
+        filterCombo.addActionListener(e -> {
+            loadSummaryTransactions((String) filterCombo.getSelectedItem());
+        });
+
+        // Optional refresh button
+        JButton refreshButton = new JButton("Refresh");
+        styleSecondaryButton(refreshButton);
+        refreshButton.addActionListener(e -> {
+            loadSummaryTransactions((String) filterCombo.getSelectedItem());
+        });
+
+        buttonPanel.add(filterLabel);
+        buttonPanel.add(filterCombo);
+        buttonPanel.add(Box.createHorizontalStrut(20));
+        buttonPanel.add(refreshButton);
+
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    /**
+     * Creates a summary card for displaying financial metrics with a pre-created value label.
+     * This allows external code to update the value label directly.
+     */
+    private JPanel createSummaryCardWithLabel(String title, JLabel valueLabel, Color valueColor) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(COLOR_BG_MAIN);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(COLOR_BORDER),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(COLOR_BG_MAIN);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(primaryFont(Font.PLAIN, 11));
+        titleLabel.setForeground(COLOR_TEXT_SECONDARY);
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Style the provided value label
+        valueLabel.setFont(primaryFont(Font.BOLD, 18));
+        valueLabel.setForeground(valueColor);
+        valueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        contentPanel.add(titleLabel);
+        contentPanel.add(Box.createVerticalStrut(5));
+        contentPanel.add(valueLabel);
+
+        card.add(contentPanel, BorderLayout.CENTER);
+        return card;
+    }
+
+    /**
+     * Creates a summary card for displaying financial metrics.
+     */
+    private JPanel createSummaryCard(String title, String value, Color valueColor) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(COLOR_BG_MAIN);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(COLOR_BORDER),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(COLOR_BG_MAIN);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(primaryFont(Font.PLAIN, 11));
+        titleLabel.setForeground(COLOR_TEXT_SECONDARY);
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setFont(primaryFont(Font.BOLD, 18));
+        valueLabel.setForeground(valueColor);
+        valueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        contentPanel.add(titleLabel);
+        contentPanel.add(Box.createVerticalStrut(5));
+        contentPanel.add(valueLabel);
+
+        card.add(contentPanel, BorderLayout.CENTER);
+        return card;
+    }
+
+    /**
+     * Loads all transactions summary for the current user.
+     */
+    private void loadAllTransactionsSummary(DefaultTableModel tableModel, JLabel assetsLabel,
+            JLabel incomeLabel, JLabel expensesLabel, JLabel netLabel, JLabel countLabel, String filter) {
+
+        if (serviceDispatcher == null || !isEffectivelyLoggedIn()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please log in to view your financial summary.",
+                    "Login Required",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            // Get summary values
+            float totalAssets = serviceDispatcher.getCurrentUserTotalAssets();
+            float totalIncome = serviceDispatcher.getCurrentUserTotalIncome();
+            float totalExpenses = serviceDispatcher.getCurrentUserTotalExpenses();
+            float netPosition = totalAssets + totalIncome - totalExpenses;
+
+            // Update summary cards
+            assetsLabel.setText(String.format("$%.2f", totalAssets));
+            incomeLabel.setText(String.format("$%.2f", totalIncome));
+            expensesLabel.setText(String.format("$%.2f", totalExpenses));
+            netLabel.setText(String.format("%s$%.2f", netPosition < 0 ? "-" : "", Math.abs(netPosition)));
+            netLabel.setForeground(netPosition >= 0 ? COLOR_SUCCESS : new Color(239, 68, 68));
+
+            // Get all transactions
+            List<org.example.manageFinances.src.generalFinancialData.TransactionSummary> transactions =
+                    serviceDispatcher.getCurrentUserAllTransactionDetails();
+
+            tableModel.setRowCount(0); // Clear table
+
+            int displayedCount = 0;
+            for (org.example.manageFinances.src.generalFinancialData.TransactionSummary tx : transactions) {
+                // Apply filter
+                String type = tx.getTransactionType() != null ? tx.getTransactionType().toLowerCase() : "";
+                boolean include = false;
+
+                switch (filter) {
+                    case "All Transactions":
+                        include = true;
+                        break;
+                    case "Income Only":
+                        include = type.contains("income");
+                        break;
+                    case "Expenses Only":
+                        include = type.equals("purchase") || type.equals("withdrawal");
+                        break;
+                    case "Purchases":
+                        include = type.equals("purchase");
+                        break;
+                    case "Withdrawals":
+                        include = type.equals("withdrawal");
+                        break;
+                    case "Delivery Income":
+                        include = type.equals("delivery income");
+                        break;
+                    case "Other Income":
+                        include = type.equals("other income");
+                        break;
+                    default:
+                        include = true;
+                }
+
+                if (include) {
+                    String amountStr;
+                    float amount = tx.getAmount();
+                    if (amount < 0) {
+                        amountStr = String.format("($%.2f)", Math.abs(amount));
+                    } else {
+                        amountStr = String.format("$%.2f", amount);
+                    }
+
+                    tableModel.addRow(new Object[]{
+                            tx.getTransactionId(),
+                            tx.getTransactionDate() != null ? tx.getTransactionDate() : "-",
+                            tx.getTransactionType() != null ? tx.getTransactionType() : "-",
+                            amountStr,
+                            tx.getBankAccountId() > 0 ? tx.getBankAccountId() : "-",
+                            tx.getDescription() != null ? tx.getDescription() : "-"
+                    });
+                    displayedCount++;
+                }
+            }
+
+            countLabel.setText("Total Transactions: " + transactions.size() +
+                    (displayedCount != transactions.size() ? " (Showing: " + displayedCount + ")" : ""));
+
+            if (transactions.isEmpty()) {
+                showAutoCloseSuccess("No transactions found.");
+            } else {
+                showAutoCloseSuccess("Loaded " + transactions.size() + " transaction(s).");
+            }
+
+        } catch (Exception ex) {
+            System.err.println("Error loading transactions summary: " + ex.getMessage());
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error loading summary: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Loads summary transactions using class field components.
+     * Called on login and when filter changes.
+     * @param filter The filter to apply (e.g., "All Transactions", "Income Only")
+     */
+    private void loadSummaryTransactions(String filter) {
+        if (serviceDispatcher == null || !isEffectivelyLoggedIn()) {
+            return; // Silently return if not logged in
+        }
+
+        if (summaryTransactionTableModel == null) {
+            return; // UI not initialized yet
+        }
+
+        try {
+            // Get summary values
+            float totalAssets = serviceDispatcher.getCurrentUserTotalAssets();
+            float totalIncome = serviceDispatcher.getCurrentUserTotalIncome();
+            float totalExpenses = serviceDispatcher.getCurrentUserTotalExpenses();
+            float netPosition = totalAssets + totalIncome - totalExpenses;
+
+            // Update summary cards
+            if (summaryAssetsValueLabel != null) {
+                summaryAssetsValueLabel.setText(String.format("$%.2f", totalAssets));
+            }
+            if (summaryIncomeValueLabel != null) {
+                summaryIncomeValueLabel.setText(String.format("$%.2f", totalIncome));
+            }
+            if (summaryExpensesValueLabel != null) {
+                summaryExpensesValueLabel.setText(String.format("$%.2f", totalExpenses));
+            }
+            if (summaryNetValueLabel != null) {
+                summaryNetValueLabel.setText(String.format("%s$%.2f", netPosition < 0 ? "-" : "", Math.abs(netPosition)));
+                summaryNetValueLabel.setForeground(netPosition >= 0 ? COLOR_SUCCESS : new Color(239, 68, 68));
+            }
+
+            // Get all transactions
+            List<org.example.manageFinances.src.generalFinancialData.TransactionSummary> transactions =
+                    serviceDispatcher.getCurrentUserAllTransactionDetails();
+
+            summaryTransactionTableModel.setRowCount(0); // Clear table
+
+            int displayedCount = 0;
+            for (org.example.manageFinances.src.generalFinancialData.TransactionSummary tx : transactions) {
+                // Apply filter
+                String type = tx.getTransactionType() != null ? tx.getTransactionType().toLowerCase() : "";
+                boolean include = false;
+
+                if (filter == null) filter = "All Transactions";
+
+                switch (filter) {
+                    case "All Transactions":
+                        include = true;
+                        break;
+                    case "Income Only":
+                        include = type.contains("income");
+                        break;
+                    case "Expenses Only":
+                        include = type.equals("purchase") || type.equals("withdrawal");
+                        break;
+                    case "Purchases":
+                        include = type.equals("purchase");
+                        break;
+                    case "Withdrawals":
+                        include = type.equals("withdrawal");
+                        break;
+                    case "Delivery Income":
+                        include = type.equals("delivery income");
+                        break;
+                    case "Other Income":
+                        include = type.equals("other income");
+                        break;
+                    default:
+                        include = true;
+                }
+
+                if (include) {
+                    String amountStr;
+                    float amount = tx.getAmount();
+                    if (amount < 0) {
+                        amountStr = String.format("($%.2f)", Math.abs(amount));
+                    } else {
+                        amountStr = String.format("$%.2f", amount);
+                    }
+
+                    // Column order: Description, Date, Type, Amount, Account
+                    summaryTransactionTableModel.addRow(new Object[]{
+                            tx.getDescription() != null ? tx.getDescription() : "-",
+                            tx.getTransactionDate() != null ? tx.getTransactionDate() : "-",
+                            tx.getTransactionType() != null ? tx.getTransactionType() : "-",
+                            amountStr,
+                            tx.getBankAccountId() > 0 ? tx.getBankAccountId() : "-"
+                    });
+                    displayedCount++;
+                }
+            }
+
+            if (summaryTransactionCountLabel != null) {
+                summaryTransactionCountLabel.setText("Total Transactions: " + transactions.size() +
+                        (displayedCount != transactions.size() ? " (Showing: " + displayedCount + ")" : ""));
+            }
+
+            System.out.println("FinanceAppFrame: Loaded " + transactions.size() + " summary transactions.");
+
+        } catch (Exception ex) {
+            System.err.println("Error loading summary transactions: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    /**
+     * Creates the Select Bank Account tab.
+     * Displays user's bank accounts and shows transactions for the selected account.
+     */
+    private JPanel createSelectBankAccountTab() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(COLOR_BG_CARD);
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 10, 10, 10));
+
+        // Description
+        JLabel desc = new JLabel("Select a bank account to view details and transactions:");
+        desc.setFont(primaryFont(Font.PLAIN, 12));
+        desc.setForeground(COLOR_TEXT_SECONDARY);
+        desc.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(desc, BorderLayout.NORTH);
+
+        // Main split panel - left for accounts, right for transactions
+        JPanel mainPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        mainPanel.setBackground(COLOR_BG_CARD);
+
+        // =========================================================
+        // LEFT PANEL - Bank Accounts List and Details
+        // =========================================================
+        JPanel leftPanel = new JPanel(new BorderLayout(5, 5));
+        leftPanel.setBackground(COLOR_BG_CARD);
+
+        // Table for bank accounts - use class field
+        String[] columnNames = {"Account ID", "Account Name", "Account Type", "Balance"};
+        bankAccountTableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        JTable bankAccountTable = new JTable(bankAccountTableModel);
+        bankAccountTable.setBackground(COLOR_BG_INPUT);
+        bankAccountTable.setForeground(COLOR_TEXT_PRIMARY);
+        bankAccountTable.setSelectionBackground(COLOR_ACCENT);
+        bankAccountTable.setSelectionForeground(Color.BLACK);
+        bankAccountTable.setGridColor(COLOR_BORDER);
+        bankAccountTable.setRowHeight(28);
+        bankAccountTable.getTableHeader().setBackground(COLOR_BG_MAIN);
+        bankAccountTable.getTableHeader().setForeground(COLOR_TEXT_PRIMARY);
+
+        JScrollPane accountTableScroll = new JScrollPane(bankAccountTable);
+        accountTableScroll.setPreferredSize(new Dimension(350, 150));
+        accountTableScroll.getViewport().setBackground(COLOR_BG_INPUT);
+
+        JPanel accountTablePanel = new JPanel(new BorderLayout());
+        accountTablePanel.setBackground(COLOR_BG_CARD);
+        accountTablePanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(COLOR_BORDER),
+                "Bank Accounts",
+                0, 0,
+                primaryFont(Font.BOLD, 12),
+                COLOR_TEXT_SECONDARY
+        ));
+        accountTablePanel.add(accountTableScroll, BorderLayout.CENTER);
+        leftPanel.add(accountTablePanel, BorderLayout.CENTER);
+
+        // Details panel - shows selected account details
+        JPanel detailsPanel = new JPanel(new GridLayout(4, 2, 10, 5));
+        detailsPanel.setBackground(COLOR_BG_MAIN);
+        detailsPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(COLOR_BORDER),
+                        "Account Details",
+                        0, 0,
+                        primaryFont(Font.BOLD, 12),
+                        COLOR_TEXT_SECONDARY
+                ),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
+
+        // Detail labels - use class fields
+        JLabel idLabel = new JLabel("Account ID:");
+        bankAccountIdValue = new JLabel("-");
+        JLabel nameLabel = new JLabel("Account Name:");
+        bankAccountNameValue = new JLabel("-");
+        JLabel typeLabel = new JLabel("Account Type:");
+        bankAccountTypeValue = new JLabel("-");
+        JLabel balanceLabel = new JLabel("Balance:");
+        bankAccountBalanceValue = new JLabel("-");
+
+        styleFormLabel(idLabel);
+        styleFormLabel(nameLabel);
+        styleFormLabel(typeLabel);
+        styleFormLabel(balanceLabel);
+
+        bankAccountIdValue.setForeground(COLOR_TEXT_PRIMARY);
+        bankAccountNameValue.setForeground(COLOR_TEXT_PRIMARY);
+        bankAccountTypeValue.setForeground(COLOR_TEXT_PRIMARY);
+        bankAccountBalanceValue.setForeground(COLOR_SUCCESS);
+
+        detailsPanel.add(idLabel);
+        detailsPanel.add(bankAccountIdValue);
+        detailsPanel.add(nameLabel);
+        detailsPanel.add(bankAccountNameValue);
+        detailsPanel.add(typeLabel);
+        detailsPanel.add(bankAccountTypeValue);
+        detailsPanel.add(balanceLabel);
+        detailsPanel.add(bankAccountBalanceValue);
+
+        leftPanel.add(detailsPanel, BorderLayout.SOUTH);
+
+        // =========================================================
+        // RIGHT PANEL - Transactions for Selected Account
+        // =========================================================
+        JPanel rightPanel = new JPanel(new BorderLayout(5, 5));
+        rightPanel.setBackground(COLOR_BG_CARD);
+
+        // Transactions table - use class field
+        String[] transactionColumns = {"ID", "Date", "Type", "Amount", "Description"};
+        bankTransactionTableModel = new DefaultTableModel(transactionColumns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        JTable transactionTable = new JTable(bankTransactionTableModel);
+        transactionTable.setBackground(COLOR_BG_INPUT);
+        transactionTable.setForeground(COLOR_TEXT_PRIMARY);
+        transactionTable.setSelectionBackground(COLOR_ACCENT);
+        transactionTable.setSelectionForeground(Color.BLACK);
+        transactionTable.setGridColor(COLOR_BORDER);
+        transactionTable.setRowHeight(26);
+        transactionTable.getTableHeader().setBackground(COLOR_BG_MAIN);
+        transactionTable.getTableHeader().setForeground(COLOR_TEXT_PRIMARY);
+
+        // Custom renderer for amount column to show color based on positive/negative
+        transactionTable.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    String amountStr = value != null ? value.toString() : "";
+                    if (amountStr.startsWith("-") || amountStr.startsWith("($")) {
+                        c.setForeground(new Color(239, 68, 68)); // Red for negative
+                    } else {
+                        c.setForeground(COLOR_SUCCESS); // Green for positive
+                    }
+                }
+                setHorizontalAlignment(SwingConstants.RIGHT);
+                return c;
+            }
+        });
+
+        JScrollPane transactionTableScroll = new JScrollPane(transactionTable);
+        transactionTableScroll.getViewport().setBackground(COLOR_BG_INPUT);
+
+        JPanel transactionTablePanel = new JPanel(new BorderLayout());
+        transactionTablePanel.setBackground(COLOR_BG_CARD);
+        transactionTablePanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(COLOR_BORDER),
+                "Account Transactions",
+                0, 0,
+                primaryFont(Font.BOLD, 12),
+                COLOR_TEXT_SECONDARY
+        ));
+        transactionTablePanel.add(transactionTableScroll, BorderLayout.CENTER);
+
+        // Transaction summary panel
+        JPanel transactionSummaryPanel = new JPanel(new GridLayout(1, 4, 10, 0));
+        transactionSummaryPanel.setBackground(COLOR_BG_MAIN);
+        transactionSummaryPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+        // Use class fields for labels
+        bankTotalIncomeLabel = new JLabel("Total Income: $0.00");
+        bankTotalExpensesLabel = new JLabel("Total Expenses: $0.00");
+        bankNetLabel = new JLabel("Net: $0.00");
+        bankTransactionCountLabel = new JLabel("Transactions: 0");
+
+        bankTotalIncomeLabel.setForeground(COLOR_SUCCESS);
+        bankTotalExpensesLabel.setForeground(new Color(239, 68, 68));
+        bankNetLabel.setForeground(COLOR_TEXT_PRIMARY);
+        bankTransactionCountLabel.setForeground(COLOR_TEXT_SECONDARY);
+
+        bankTotalIncomeLabel.setFont(primaryFont(Font.BOLD, 11));
+        bankTotalExpensesLabel.setFont(primaryFont(Font.BOLD, 11));
+        bankNetLabel.setFont(primaryFont(Font.BOLD, 11));
+        bankTransactionCountLabel.setFont(primaryFont(Font.PLAIN, 11));
+
+        transactionSummaryPanel.add(bankTotalIncomeLabel);
+        transactionSummaryPanel.add(bankTotalExpensesLabel);
+        transactionSummaryPanel.add(bankNetLabel);
+        transactionSummaryPanel.add(bankTransactionCountLabel);
+
+        rightPanel.add(transactionTablePanel, BorderLayout.CENTER);
+        rightPanel.add(transactionSummaryPanel, BorderLayout.SOUTH);
+
+        mainPanel.add(leftPanel);
+        mainPanel.add(rightPanel);
+
+        panel.add(mainPanel, BorderLayout.CENTER);
+
+        // =========================================================
+        // BUTTON PANEL
+        // =========================================================
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(COLOR_BG_CARD);
+
+        JButton refreshButton = new JButton("Refresh Accounts");
+        JButton viewTransactionsButton = new JButton("View Transactions");
+
+        styleSecondaryButton(refreshButton);
+        stylePrimaryButton(viewTransactionsButton);
+
+        // Refresh button - loads accounts from database
+        refreshButton.addActionListener(e -> loadBankAccountsFromDatabase());
+
+        // Table selection listener - updates details panel and loads transactions
+        bankAccountTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int selectedRow = bankAccountTable.getSelectedRow();
+                if (selectedRow >= 0) {
+                    // Update details panel
+                    String accountId = String.valueOf(bankAccountTableModel.getValueAt(selectedRow, 0));
+                    bankAccountIdValue.setText(accountId);
+                    bankAccountNameValue.setText(String.valueOf(bankAccountTableModel.getValueAt(selectedRow, 1)));
+                    bankAccountTypeValue.setText(String.valueOf(bankAccountTableModel.getValueAt(selectedRow, 2)));
+                    bankAccountBalanceValue.setText(String.valueOf(bankAccountTableModel.getValueAt(selectedRow, 3)));
+
+                    // Load transactions for selected account
+                    loadTransactionsForAccount(
+                            accountId,
+                            bankTransactionTableModel,
+                            bankTotalIncomeLabel,
+                            bankTotalExpensesLabel,
+                            bankNetLabel,
+                            bankTransactionCountLabel
+                    );
+                }
+            }
+        });
+
+        // View Transactions button - explicitly loads transactions for selected account
+        viewTransactionsButton.addActionListener(e -> {
+            int selectedRow = bankAccountTable.getSelectedRow();
+            if (selectedRow >= 0) {
+                String accountId = String.valueOf(bankAccountTableModel.getValueAt(selectedRow, 0));
+                loadTransactionsForAccount(
+                        accountId,
+                        bankTransactionTableModel,
+                        bankTotalIncomeLabel,
+                        bankTotalExpensesLabel,
+                        bankNetLabel,
+                        bankTransactionCountLabel
+                );
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Please select a bank account from the table.",
+                        "No Selection",
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
+        // Add Expense button
+        JButton addExpenseButton = new JButton("Add Expense");
+        styleSecondaryButton(addExpenseButton);
+        addExpenseButton.setBackground(new Color(220, 38, 38)); // Red for expense
+        addExpenseButton.addActionListener(e -> {
+            int selectedRow = bankAccountTable.getSelectedRow();
+            if (selectedRow < 0) {
+                JOptionPane.showMessageDialog(this,
+                        "Please select a bank account first.",
+                        "No Account Selected",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            String accountId = String.valueOf(bankAccountTableModel.getValueAt(selectedRow, 0));
+            showAddTransactionDialog(false, accountId, bankTransactionTableModel,
+                    bankTotalIncomeLabel, bankTotalExpensesLabel, bankNetLabel, bankTransactionCountLabel);
+        });
+
+        // Add Income button
+        JButton addIncomeButton = new JButton("Add Income");
+        styleSecondaryButton(addIncomeButton);
+        addIncomeButton.setBackground(new Color(22, 163, 74)); // Green for income
+        addIncomeButton.addActionListener(e -> {
+            int selectedRow = bankAccountTable.getSelectedRow();
+            if (selectedRow < 0) {
+                JOptionPane.showMessageDialog(this,
+                        "Please select a bank account first.",
+                        "No Account Selected",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            String accountId = String.valueOf(bankAccountTableModel.getValueAt(selectedRow, 0));
+            showAddTransactionDialog(true, accountId, bankTransactionTableModel,
+                    bankTotalIncomeLabel, bankTotalExpensesLabel, bankNetLabel, bankTransactionCountLabel);
+        });
+
+        buttonPanel.add(refreshButton);
+        buttonPanel.add(viewTransactionsButton);
+        buttonPanel.add(Box.createHorizontalStrut(20)); // Spacer
+        buttonPanel.add(addExpenseButton);
+        buttonPanel.add(addIncomeButton);
+
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    /**
+     * Shows a dialog to add a new transaction (expense or income) for a bank account.
+     * @param isIncome true for income, false for expense
+     * @param accountId The bank account ID to associate the transaction with
+     * @param transactionTableModel The table model to refresh after adding
+     * @param totalIncomeLabel Label to update
+     * @param totalExpensesLabel Label to update
+     * @param netLabel Label to update
+     * @param transactionCountLabel Label to update
+     */
+    private void showAddTransactionDialog(boolean isIncome, String accountId,
+            DefaultTableModel transactionTableModel, JLabel totalIncomeLabel,
+            JLabel totalExpensesLabel, JLabel netLabel, JLabel transactionCountLabel) {
+
+        String title = isIncome ? "Add Income" : "Add Expense";
+        Color titleColor = isIncome ? COLOR_SUCCESS : new Color(239, 68, 68);
+
+        JDialog dialog = new JDialog(this, title, true);
+        dialog.setSize(400, 300);
+        dialog.setLocationRelativeTo(this);
+        dialog.getContentPane().setBackground(COLOR_BG_CARD);
+
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBackground(COLOR_BG_CARD);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        // Title label
+        JLabel titleLabel = new JLabel(title + " for Account #" + accountId);
+        titleLabel.setFont(primaryFont(Font.BOLD, 16));
+        titleLabel.setForeground(titleColor);
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+
+        // Form panel
+        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
+        formPanel.setBackground(COLOR_BG_MAIN);
+        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        // Amount field
+        JLabel amountLabel = new JLabel("Amount ($):");
+        styleFormLabel(amountLabel);
+        JTextField amountField = createInputField();
+        amountField.setText("0.00");
+
+        // Type selection
+        JLabel typeLabel = new JLabel("Type:");
+        styleFormLabel(typeLabel);
+        String[] incomeTypes = {"delivery income", "other income"};
+        String[] expenseTypes = {"purchase", "withdrawal"};
+        JComboBox<String> typeCombo = new JComboBox<>(isIncome ? incomeTypes : expenseTypes);
+        styleComboBox(typeCombo);
+
+        // Description field
+        JLabel descLabel = new JLabel("Description:");
+        styleFormLabel(descLabel);
+        JTextField descField = createInputField();
+        descField.setToolTipText("Optional description for this transaction");
+
+        formPanel.add(amountLabel);
+        formPanel.add(amountField);
+        formPanel.add(typeLabel);
+        formPanel.add(typeCombo);
+        formPanel.add(descLabel);
+        formPanel.add(descField);
+
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+
+        // Button panel
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(COLOR_BG_CARD);
+
+        JButton saveButton = new JButton("Save " + (isIncome ? "Income" : "Expense"));
+        JButton cancelButton = new JButton("Cancel");
+
+        stylePrimaryButton(saveButton);
+        styleSecondaryButton(cancelButton);
+
+        if (isIncome) {
+            saveButton.setBackground(new Color(22, 163, 74)); // Green
+        } else {
+            saveButton.setBackground(new Color(220, 38, 38)); // Red
+        }
+
+        saveButton.addActionListener(ev -> {
+            try {
+                String amountText = amountField.getText().trim().replace("$", "").replace(",", "");
+                float amount = Float.parseFloat(amountText);
+
+                if (amount <= 0) {
+                    JOptionPane.showMessageDialog(dialog,
+                            "Please enter a positive amount.",
+                            "Invalid Amount",
+                            JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                String transactionType = (String) typeCombo.getSelectedItem();
+                String description = descField.getText().trim();
+                if (description.isEmpty()) {
+                    description = null;
+                }
+
+                int bankAccountId = Integer.parseInt(accountId);
+
+                // Save to database via serviceDispatcher
+                if (serviceDispatcher != null) {
+                    serviceDispatcher.addTransactionForBankAccount(amount, transactionType, bankAccountId, description);
+                    showAutoCloseSuccess((isIncome ? "Income" : "Expense") + " of $" + String.format("%.2f", amount) + " added successfully!");
+
+                    // Refresh the transactions table
+                    loadTransactionsForAccount(accountId, transactionTableModel,
+                            totalIncomeLabel, totalExpensesLabel, netLabel, transactionCountLabel);
+
+                    dialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(dialog,
+                            "Service not available. Please try again.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Please enter a valid amount.",
+                        "Invalid Input",
+                        JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                System.err.println("Error saving transaction: " + ex.getMessage());
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(dialog,
+                        "Error saving transaction: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        cancelButton.addActionListener(ev -> dialog.dispose());
+
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.add(mainPanel);
+        dialog.setVisible(true);
+    }
+
+    /**
+     * Loads transactions for a specific bank account and updates the UI.
+     */
+    private void loadTransactionsForAccount(String accountId, DefaultTableModel transactionTableModel,
+            JLabel totalIncomeLabel, JLabel totalExpensesLabel, JLabel netLabel, JLabel transactionCountLabel) {
+        if (serviceDispatcher == null) {
+            return;
+        }
+
+        try {
+            int bankAccountId = Integer.parseInt(accountId);
+            List<org.example.manageFinances.src.generalFinancialDataDAO.TransactionRecord> transactions =
+                    serviceDispatcher.getTransactionsForBankAccount(bankAccountId);
+
+            transactionTableModel.setRowCount(0); // Clear table
+
+            float totalIncome = 0;
+            float totalExpenses = 0;
+
+            for (org.example.manageFinances.src.generalFinancialDataDAO.TransactionRecord tx : transactions) {
+                String amountStr;
+                float amount = tx.getAmount();
+                if (amount < 0) {
+                    amountStr = String.format("($%.2f)", Math.abs(amount));
+                    totalExpenses += Math.abs(amount);
+                } else {
+                    amountStr = String.format("$%.2f", amount);
+                    totalIncome += amount;
+                }
+
+                transactionTableModel.addRow(new Object[]{
+                        tx.getTransactionId(),
+                        tx.getTransactionDate() != null ? tx.getTransactionDate() : "-",
+                        tx.getTransactionType(),
+                        amountStr,
+                        tx.getDescription() != null ? tx.getDescription() : "-"
+                });
+            }
+
+            // Update summary labels
+            totalIncomeLabel.setText(String.format("Total Income: $%.2f", totalIncome));
+            totalExpensesLabel.setText(String.format("Total Expenses: $%.2f", totalExpenses));
+            float net = totalIncome - totalExpenses;
+            netLabel.setText(String.format("Net: %s$%.2f", net < 0 ? "-" : "", Math.abs(net)));
+            netLabel.setForeground(net >= 0 ? COLOR_SUCCESS : new Color(239, 68, 68));
+            transactionCountLabel.setText("Transactions: " + transactions.size());
+
+            if (transactions.isEmpty()) {
+                showAutoCloseSuccess("No transactions found for this account.");
+            }
+
+        } catch (NumberFormatException ex) {
+            System.err.println("Invalid account ID: " + accountId);
+        } catch (Exception ex) {
+            System.err.println("Error loading transactions: " + ex.getMessage());
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error loading transactions: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Creates the Add New Bank Account tab with form fields from addBankAccount class.
+     */
+    private JPanel createAddBankAccountTab() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(COLOR_BG_CARD);
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 10, 10, 10));
+
+        JPanel formContainer = new JPanel();
+        formContainer.setBackground(COLOR_BG_CARD);
+        formContainer.setLayout(new BoxLayout(formContainer, BoxLayout.Y_AXIS));
+
+        JLabel desc = new JLabel("Enter the details for your new bank account:");
+        desc.setFont(primaryFont(Font.PLAIN, 12));
+        desc.setForeground(COLOR_TEXT_SECONDARY);
+        desc.setAlignmentX(Component.LEFT_ALIGNMENT);
+        formContainer.add(desc);
+        formContainer.add(Box.createVerticalStrut(15));
+
+        // Form panel with grid layout
+        JPanel formPanel = new JPanel(new GridLayout(6, 2, 10, 10));
+        formPanel.setBackground(COLOR_BG_MAIN);
+        formPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(COLOR_BORDER),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        formPanel.setMaximumSize(new Dimension(500, 250));
+        formPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Account Name
+        JLabel accountNameLabel = new JLabel("Account Name");
+        styleFormLabel(accountNameLabel);
+        JTextField accountNameField = createInputField();
+        accountNameField.setToolTipText("Enter a name for this account (e.g., 'Main Checking')");
+
+        // Account Type
+        JLabel accountTypeLabel = new JLabel("Account Type");
+        styleFormLabel(accountTypeLabel);
+        String[] accountTypes = {"Checking", "Savings", "Credit Card", "Investment", "Other"};
+        JComboBox<String> accountTypeCombo = new JComboBox<>(accountTypes);
+        styleComboBox(accountTypeCombo);
+
+        // Initial Balance
+        JLabel balanceLabel = new JLabel("Initial Balance ($)");
+        styleFormLabel(balanceLabel);
+        JTextField balanceField = createInputField();
+        balanceField.setText("0.00");
+        balanceField.setToolTipText("Enter the current balance of this account");
+
+        // Interest Rate
+        JLabel interestRateLabel = new JLabel("Interest Rate (%)");
+        styleFormLabel(interestRateLabel);
+        JTextField interestRateField = createInputField();
+        interestRateField.setText("0.00");
+        interestRateField.setToolTipText("Annual interest rate (e.g., 2.5 for 2.5%)");
+
+        // Account Fees
+        JLabel accountFeesLabel = new JLabel("Monthly Fees ($)");
+        styleFormLabel(accountFeesLabel);
+        JTextField accountFeesField = createInputField();
+        accountFeesField.setText("0.00");
+        accountFeesField.setToolTipText("Monthly account maintenance fees");
+
+        // Other Income
+        JLabel otherIncomeLabel = new JLabel("Other Income ($)");
+        styleFormLabel(otherIncomeLabel);
+        JTextField otherIncomeField = createInputField();
+        otherIncomeField.setText("0.00");
+        otherIncomeField.setToolTipText("Any other regular income associated with this account");
+
+        // Add components to form
+        formPanel.add(accountNameLabel);
+        formPanel.add(accountNameField);
+        formPanel.add(accountTypeLabel);
+        formPanel.add(accountTypeCombo);
+        formPanel.add(balanceLabel);
+        formPanel.add(balanceField);
+        formPanel.add(interestRateLabel);
+        formPanel.add(interestRateField);
+        formPanel.add(accountFeesLabel);
+        formPanel.add(accountFeesField);
+        formPanel.add(otherIncomeLabel);
+        formPanel.add(otherIncomeField);
+
+        formContainer.add(formPanel);
+        formContainer.add(Box.createVerticalStrut(15));
+
+        // Create Bank Account Button
+        JButton createAccountButton = new JButton("Create Bank Account");
+        createAccountButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        stylePrimaryButton(createAccountButton);
+
+        createAccountButton.addActionListener(e -> {
+            // Validate inputs
+            String accountName = accountNameField.getText().trim();
+            String accountType = (String) accountTypeCombo.getSelectedItem();
+
+            if (accountName.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "Please enter an account name.",
+                        "Input Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            double balance, interestRate, accountFees, otherIncome;
+            try {
+                balance = Double.parseDouble(balanceField.getText().trim());
+                interestRate = Double.parseDouble(interestRateField.getText().trim());
+                accountFees = Double.parseDouble(accountFeesField.getText().trim());
+                otherIncome = Double.parseDouble(otherIncomeField.getText().trim());
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Please enter valid numbers for balance, interest rate, fees, and income.",
+                        "Input Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Save to database via serviceDispatcher
+            if (serviceDispatcher != null) {
+                try {
+                    boolean success = serviceDispatcher.createBankAccount(
+                            savedUsername,  // owner username
+                            accountName,
+                            accountType,
+                            balance,
+                            interestRate,
+                            accountFees,
+                            otherIncome
+                    );
+
+                    if (success) {
+                        showAutoCloseSuccess("Bank account '" + accountName + "' created successfully!");
+                        // Clear form fields
+                        accountNameField.setText("");
+                        accountTypeCombo.setSelectedIndex(0);
+                        balanceField.setText("0.00");
+                        interestRateField.setText("0.00");
+                        accountFeesField.setText("0.00");
+                        otherIncomeField.setText("0.00");
+                    } else {
+                        JOptionPane.showMessageDialog(this,
+                                "Failed to create bank account. Please try again.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Error creating bank account: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(this,
+                            "Error creating bank account: " + ex.getMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Service not available. Please log in first.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        formContainer.add(createAccountButton);
+
+        panel.add(formContainer, BorderLayout.NORTH);
+        return panel;
     }
 
     // =========================================================
