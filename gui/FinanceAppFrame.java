@@ -84,6 +84,10 @@ public class FinanceAppFrame extends JFrame {
     // Approximate average gas price in California (USD per gallon)
     private static final double GAS_PRICE_CA = 4.80;
 
+    // Default MPG values for different vehicle types
+    private static final double DEFAULT_CAR_MPG = 28.0;        // Average car MPG
+    private static final double DEFAULT_MOTORCYCLE_MPG = 50.0; // Average motorcycle MPG
+
     private Font primaryFont(int style, int size) {
         return new Font("Segoe UI", style, size);
     }
@@ -1097,10 +1101,18 @@ public class FinanceAppFrame extends JFrame {
                 }
 
                 int carId = nextCarId++;
-                // MPG is not stored in the vehicle table, default to 0
-                carTableModel.addRow(new Object[]{carId, vehicleName, 0.0});
+                // Use MPG from database, or default based on vehicle type if not set
+                double mpg = v.getVehicleMpg();
+                if (mpg <= 0) {
+                    mpg = getDefaultMpgForVehicleType(v.getVehicleType());
+                }
+                String vehicleType = v.getVehicleType();
+                String displayName = (vehicleType != null && !vehicleType.isEmpty())
+                        ? vehicleType + " - " + vehicleName
+                        : vehicleName;
+                carTableModel.addRow(new Object[]{carId, displayName, mpg});
 
-                String displayString = carId + " - " + vehicleName;
+                String displayString = carId + " - " + displayName;
                 ((DefaultComboBoxModel<String>) deliveryCarCombo.getModel()).addElement(displayString);
             }
 
@@ -1112,6 +1124,27 @@ public class FinanceAppFrame extends JFrame {
         } catch (Exception e) {
             System.err.println("FinanceAppFrame: Error loading vehicles from database: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Returns a default MPG value based on the vehicle type.
+     * @param vehicleType The type of vehicle (Car, Motorcycle, Bike)
+     * @return Default MPG for gas cost calculations
+     */
+    private double getDefaultMpgForVehicleType(String vehicleType) {
+        if (vehicleType == null || vehicleType.isEmpty()) {
+            return DEFAULT_CAR_MPG; // Default to car MPG
+        }
+        switch (vehicleType.toLowerCase()) {
+            case "car":
+                return DEFAULT_CAR_MPG;
+            case "motorcycle":
+                return DEFAULT_MOTORCYCLE_MPG;
+            case "bike":
+                return 0.0; // Bikes don't use gas
+            default:
+                return DEFAULT_CAR_MPG;
         }
     }
 
@@ -3657,9 +3690,9 @@ public class FinanceAppFrame extends JFrame {
                     boolean isFirstVehicle = carTableModel.getRowCount() == 0;
                     String currentVehicleStatus = isFirstVehicle ? "true" : "false";
 
-                    // Add vehicle to database with selected type
-                    serviceDispatcher.addVehicle(vehicleType, carName, currentVehicleStatus, 0);
-                    System.out.println("FinanceAppFrame: Vehicle '" + carName + "' (" + vehicleType + ") saved to database.");
+                    // Add vehicle to database with selected type and MPG
+                    serviceDispatcher.addVehicle(vehicleType, carName, currentVehicleStatus, 0, mpg);
+                    System.out.println("FinanceAppFrame: Vehicle '" + carName + "' (" + vehicleType + ", " + mpg + " MPG) saved to database.");
 
                     // If this is the first vehicle, update the sidebar display
                     if (isFirstVehicle) {
@@ -4284,32 +4317,78 @@ public class FinanceAppFrame extends JFrame {
         double mpg = lookupMpgForCarDisplay(carDisplay);
         if (mpg <= 0) return 0.0;
 
-        double gallons = miles / mpg;
-        return gallons * GAS_PRICE_CA;
+        // Use serviceDispatcher's gas calculation if available, otherwise fallback to local calculation
+        if (serviceDispatcher != null) {
+            return serviceDispatcher.calculateGasCost(mpg, miles, GAS_PRICE_CA);
+        } else {
+            // Fallback: local calculation using gasUsed formula
+            double gallons = miles / mpg;
+            return gallons * GAS_PRICE_CA;
+        }
     }
 
     private double computeTotalGasCostFromDeliveries() {
         if (deliveryTableModel == null) return 0.0;
-        double totalCost = 0.0;
+
+        // Collect total miles and average MPG for all deliveries
+        double totalMiles = 0.0;
+        double totalMpgWeighted = 0.0;
+        int validDeliveries = 0;
+
         int rows = deliveryTableModel.getRowCount();
         for (int i = 0; i < rows; i++) {
-            totalCost += computeGasCostForRow(i);
+            Object milesObj = deliveryTableModel.getValueAt(i, 6);
+            Object carObj = deliveryTableModel.getValueAt(i, 5);
+
+            if (milesObj == null || carObj == null) continue;
+
+            double miles;
+            try {
+                miles = (milesObj instanceof Number)
+                        ? ((Number) milesObj).doubleValue()
+                        : Double.parseDouble(milesObj.toString());
+            } catch (NumberFormatException ex) {
+                continue;
+            }
+
+            if (miles <= 0) continue;
+
+            String carDisplay = carObj.toString();
+            double mpg = lookupMpgForCarDisplay(carDisplay);
+            if (mpg <= 0) continue;
+
+            totalMiles += miles;
+            totalMpgWeighted += mpg * miles; // Weight MPG by miles for accurate averaging
+            validDeliveries++;
         }
-        return totalCost;
+
+        if (validDeliveries == 0 || totalMiles <= 0) return 0.0;
+
+        // Calculate weighted average MPG
+        double avgMpg = totalMpgWeighted / totalMiles;
+
+        // Use serviceDispatcher's gas calculation if available
+        if (serviceDispatcher != null) {
+            return serviceDispatcher.calculateTotalGasCost(totalMiles, avgMpg, GAS_PRICE_CA);
+        } else {
+            // Fallback: local calculation
+            double gallons = totalMiles / avgMpg;
+            return gallons * GAS_PRICE_CA;
+        }
     }
 
     private double lookupMpgForCarDisplay(String carDisplay) {
-        if (carDisplay == null) return 0.0;
+        if (carDisplay == null) return DEFAULT_CAR_MPG;
 
         int dashIndex = carDisplay.indexOf("-");
-        if (dashIndex <= 0) return 0.0;
+        if (dashIndex <= 0) return DEFAULT_CAR_MPG;
 
         String idPart = carDisplay.substring(0, dashIndex).trim();
         int carId;
         try {
             carId = Integer.parseInt(idPart);
         } catch (NumberFormatException ex) {
-            return 0.0;
+            return DEFAULT_CAR_MPG;
         }
 
         int rows = carTableModel.getRowCount();
@@ -4317,16 +4396,31 @@ public class FinanceAppFrame extends JFrame {
             Object idObj = carTableModel.getValueAt(i, 0);
             if (idObj instanceof Number && ((Number) idObj).intValue() == carId) {
                 Object mpgObj = carTableModel.getValueAt(i, 2);
+                double mpg = 0.0;
                 if (mpgObj instanceof Number) {
-                    return ((Number) mpgObj).doubleValue();
+                    mpg = ((Number) mpgObj).doubleValue();
                 } else if (mpgObj != null) {
                     try {
-                        return Double.parseDouble(mpgObj.toString());
+                        mpg = Double.parseDouble(mpgObj.toString());
                     } catch (NumberFormatException ignored) { }
                 }
+                // If MPG is 0 or negative, check vehicle type in display name and use appropriate default
+                if (mpg <= 0) {
+                    Object nameObj = carTableModel.getValueAt(i, 1);
+                    if (nameObj != null) {
+                        String vehicleName = nameObj.toString().toLowerCase();
+                        if (vehicleName.contains("motorcycle")) {
+                            return DEFAULT_MOTORCYCLE_MPG;
+                        } else if (vehicleName.contains("bike")) {
+                            return 0.0; // Bikes don't use gas
+                        }
+                    }
+                    return DEFAULT_CAR_MPG;
+                }
+                return mpg;
             }
         }
-        return 0.0;
+        return DEFAULT_CAR_MPG;
     }
 
     // =========================================================

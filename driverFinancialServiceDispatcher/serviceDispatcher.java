@@ -454,6 +454,38 @@ public class serviceDispatcher {
             return calculator.findOptimalResturnats(restaurants, profitList);
         }
 
+        /**
+         * Calculates the gallons of gas used based on miles driven and vehicle MPG.
+         * @param mpg The miles per gallon of the vehicle
+         * @param milesDriven The total miles driven
+         * @return The gallons of gas used
+         */
+        public double calculateGasUsed(double mpg, double milesDriven) {
+            return calculator.gasUsed(mpg, milesDriven);
+        }
+
+        /**
+         * Calculates the estimated gas cost based on miles driven, vehicle MPG, and gas price per gallon.
+         * @param mpg The miles per gallon of the vehicle
+         * @param milesDriven The total miles driven
+         * @param gasPricePerGallon The current price of gas per gallon
+         * @return The estimated gas cost in dollars
+         */
+        public double calculateGasCost(double mpg, double milesDriven, double gasPricePerGallon) {
+            return calculator.calculateGasCost(mpg, milesDriven, gasPricePerGallon);
+        }
+
+        /**
+         * Calculates the total gas cost using a single MPG value for all deliveries.
+         * @param totalMiles The total miles driven across all deliveries
+         * @param mpg The miles per gallon of the vehicle
+         * @param gasPricePerGallon The current price of gas per gallon
+         * @return The total estimated gas cost
+         */
+        public double calculateTotalGasCost(double totalMiles, double mpg, double gasPricePerGallon) {
+            return calculator.calculateTotalGasCost(totalMiles, mpg, gasPricePerGallon);
+        }
+
         // =========================================================
         //   BANK ACCOUNT MANAGEMENT
         // =========================================================
@@ -586,11 +618,24 @@ public class serviceDispatcher {
          * @param currentMiles Current vehicle miles
          */
         public void addVehicle(String vehicleType, String vehicleModel, String currentVehicleDriven, int currentMiles) {
+            addVehicle(vehicleType, vehicleModel, currentVehicleDriven, currentMiles, 0.0);
+        }
+
+        /**
+         * Adds a new vehicle with MPG.
+         * @param vehicleType The type of vehicle
+         * @param vehicleModel The model name
+         * @param currentVehicleDriven The current vehicle driven status
+         * @param currentMiles Current vehicle miles
+         * @param mpg Miles per gallon for gas cost calculations
+         */
+        public void addVehicle(String vehicleType, String vehicleModel, String currentVehicleDriven, int currentMiles, double mpg) {
             vehicle v = new vehicle();
             v.setVehicleType(vehicleType);
             v.setVehicleModel(vehicleModel);
             v.setCurrentVehicleDriven(currentVehicleDriven);
             v.setCurrentVehicleMiles(currentMiles);
+            v.setVehicleMpg(mpg);
             vehicleDAO.create(v);
         }
 

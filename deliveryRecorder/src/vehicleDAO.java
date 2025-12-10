@@ -24,6 +24,12 @@ public class vehicleDAO {
                     v.setVehicleModel(rs.getString("vehicleModel"));
                     v.setCurrentVehicleDriven(rs.getString("currentVehicleDriven"));
                     v.setCurrentVehicleMiles(rs.getInt("currentVehicleMiles"));
+                    // Get MPG from database
+                    try {
+                        v.setVehicleMpg(rs.getDouble("mpg"));
+                    } catch (Exception e) {
+                        v.setVehicleMpg(0.0);
+                    }
                     return v;
                 });
         } catch (EmptyResultDataAccessException e) {
@@ -40,26 +46,34 @@ public class vehicleDAO {
                 v.setVehicleModel(rs.getString("vehicleModel"));
                 v.setCurrentVehicleDriven(rs.getString("currentVehicleDriven"));
                 v.setCurrentVehicleMiles(rs.getInt("currentVehicleMiles"));
+                // Get MPG from database
+                try {
+                    v.setVehicleMpg(rs.getDouble("mpg"));
+                } catch (Exception e) {
+                    v.setVehicleMpg(0.0);
+                }
                 return v;
             });
     }
 
     public void create(vehicle v) {
-        String sql = "INSERT INTO vehicle (vehicleType, vehicleModel, currentVehicleDriven, currentVehicleMiles) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO vehicle (vehicleType, vehicleModel, currentVehicleDriven, currentVehicleMiles, mpg) VALUES (?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
             v.getVehicleType(),
             v.getVehicleModel(),
             v.getCurrentVehicleDriven(),
-            v.getCurrentVehicleMiles()
+            v.getCurrentVehicleMiles(),
+            v.getVehicleMpg()
         );
     }
 
     public void update(vehicle v) {
-        String sql = "UPDATE vehicle SET vehicleType = ?, currentVehicleDriven = ?, currentVehicleMiles = ? WHERE vehicleModel = ?";
+        String sql = "UPDATE vehicle SET vehicleType = ?, currentVehicleDriven = ?, currentVehicleMiles = ?, mpg = ? WHERE vehicleModel = ?";
         jdbcTemplate.update(sql,
             v.getVehicleType(),
             v.getCurrentVehicleDriven(),
             v.getCurrentVehicleMiles(),
+            v.getVehicleMpg(),
             v.getVehicleModel()
         );
     }
@@ -93,6 +107,12 @@ public class vehicleDAO {
                     v.setVehicleModel(rs.getString("vehicleModel"));
                     v.setCurrentVehicleDriven(rs.getString("currentVehicleDriven"));
                     v.setCurrentVehicleMiles(rs.getInt("currentVehicleMiles"));
+                    // Get MPG from database
+                    try {
+                        v.setVehicleMpg(rs.getDouble("mpg"));
+                    } catch (Exception e) {
+                        v.setVehicleMpg(0.0);
+                    }
                     return v;
                 });
 
@@ -113,6 +133,12 @@ public class vehicleDAO {
                     v.setVehicleModel(rs.getString("vehicleModel"));
                     v.setCurrentVehicleDriven(rs.getString("currentVehicleDriven"));
                     v.setCurrentVehicleMiles(rs.getInt("currentVehicleMiles"));
+                    // Get MPG from database
+                    try {
+                        v.setVehicleMpg(rs.getDouble("mpg"));
+                    } catch (Exception e) {
+                        v.setVehicleMpg(0.0);
+                    }
                     return v;
                 });
 

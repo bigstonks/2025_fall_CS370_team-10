@@ -6,6 +6,7 @@ public class vehicle {
     private String currentVehicleDriven;
     private int currentVehicleMiles;
     private int startingVehicleMiles;
+    private double vehicleMpg; // Miles per gallon for gas cost calculations
 
     public String getCurrentVehicleDriven() {
         return currentVehicleDriven;
@@ -30,6 +31,14 @@ public class vehicle {
     }
     public void setVehicleModel(String vehicleModel) {
         this.vehicleModel = vehicleModel;
+    }
+
+    public double getVehicleMpg() {
+        return vehicleMpg;
+    }
+
+    public void setVehicleMpg(double vehicleMpg) {
+        this.vehicleMpg = vehicleMpg;
     }
 
     /**

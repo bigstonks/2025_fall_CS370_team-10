@@ -323,10 +323,90 @@ public class deliveryCalculator {
         return result.toString();
     }
 
-    public float gasUsed(int mpg, float milesDriven){
-       float gallonsOfGasUsed = milesDriven / mpg;
+    /**
+     * Calculates the gallons of gas used based on miles driven and vehicle MPG.
+     *
+     * @param mpg The miles per gallon of the vehicle
+     * @param milesDriven The total miles driven
+     * @return The gallons of gas used
+     */
+    public float gasUsed(int mpg, float milesDriven) {
+        if (mpg <= 0) {
+            return 0;
+        }
+        return milesDriven / mpg;
+    }
 
-        return gallonsOfGasUsed;
+    /**
+     * Calculates the gallons of gas used based on miles driven and vehicle MPG (double version).
+     *
+     * @param mpg The miles per gallon of the vehicle
+     * @param milesDriven The total miles driven
+     * @return The gallons of gas used
+     */
+    public double gasUsed(double mpg, double milesDriven) {
+        if (mpg <= 0) {
+            return 0;
+        }
+        return milesDriven / mpg;
+    }
+
+    /**
+     * Calculates the estimated gas cost based on miles driven, vehicle MPG, and gas price per gallon.
+     *
+     * @param mpg The miles per gallon of the vehicle
+     * @param milesDriven The total miles driven
+     * @param gasPricePerGallon The current price of gas per gallon
+     * @return The estimated gas cost in dollars
+     */
+    public float calculateGasCost(int mpg, float milesDriven, float gasPricePerGallon) {
+        float gallonsUsed = gasUsed(mpg, milesDriven);
+        return gallonsUsed * gasPricePerGallon;
+    }
+
+    /**
+     * Calculates the estimated gas cost based on miles driven, vehicle MPG, and gas price per gallon (double version).
+     *
+     * @param mpg The miles per gallon of the vehicle
+     * @param milesDriven The total miles driven
+     * @param gasPricePerGallon The current price of gas per gallon
+     * @return The estimated gas cost in dollars
+     */
+    public double calculateGasCost(double mpg, double milesDriven, double gasPricePerGallon) {
+        double gallonsUsed = gasUsed(mpg, milesDriven);
+        return gallonsUsed * gasPricePerGallon;
+    }
+
+    /**
+     * Calculates the total gas cost for multiple deliveries.
+     *
+     * @param milesArray Array of miles driven for each delivery
+     * @param mpgArray Array of MPG values for the vehicle used in each delivery
+     * @param gasPricePerGallon The current price of gas per gallon
+     * @return The total estimated gas cost for all deliveries
+     */
+    public float calculateTotalGasCost(float[] milesArray, int[] mpgArray, float gasPricePerGallon) {
+        if (milesArray == null || mpgArray == null || milesArray.length != mpgArray.length) {
+            return 0;
+        }
+
+        float totalCost = 0;
+        for (int i = 0; i < milesArray.length; i++) {
+            totalCost += calculateGasCost(mpgArray[i], milesArray[i], gasPricePerGallon);
+        }
+        return totalCost;
+    }
+
+    /**
+     * Calculates the total gas cost using a single MPG value for all deliveries.
+     *
+     * @param totalMiles The total miles driven across all deliveries
+     * @param mpg The miles per gallon of the vehicle
+     * @param gasPricePerGallon The current price of gas per gallon
+     * @return The total estimated gas cost
+     */
+    public double calculateTotalGasCost(double totalMiles, double mpg, double gasPricePerGallon) {
+        return calculateGasCost(mpg, totalMiles, gasPricePerGallon);
     }
 
 
