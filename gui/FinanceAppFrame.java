@@ -32,6 +32,7 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -101,7 +102,10 @@ public class FinanceAppFrame extends JFrame {
     private JTextField deliveryRestaurantField;
     private JTextField deliveryPayField;
     private JTextField deliveryTipField;
-    private JTextField deliveryDateField;
+    // Delivery date dropdowns
+    private JComboBox<Integer> deliveryDateYearCombo;
+    private JComboBox<Integer> deliveryDateMonthCombo;
+    private JComboBox<Integer> deliveryDateDayCombo;
     private JTextField deliveryStartTimeField;
     private JTextField deliveryEndTimeField;
     private JTextField deliveryMilesField;
@@ -121,6 +125,7 @@ public class FinanceAppFrame extends JFrame {
 
     private DefaultTableModel carTableModel;
     private int nextCarId = 1;
+    private JComboBox<String> defaultVehicleCombo; // For settings tab default vehicle selection
 
     // =========================================================
     //   SIDEBAR LABELS
@@ -143,8 +148,14 @@ public class FinanceAppFrame extends JFrame {
     private JLabel reportTopPlatformLabel;
     private JLabel reportTotalMilesLabel;
 
-    private JTextField reportStartDateField;
-    private JTextField reportEndDateField;
+    // Report date dropdowns (start date)
+    private JComboBox<Integer> reportStartYearCombo;
+    private JComboBox<Integer> reportStartMonthCombo;
+    private JComboBox<Integer> reportStartDayCombo;
+    // Report date dropdowns (end date)
+    private JComboBox<Integer> reportEndYearCombo;
+    private JComboBox<Integer> reportEndMonthCombo;
+    private JComboBox<Integer> reportEndDayCombo;
 
     private BarChartPanel platformChart;
     private BarChartPanel dailyChart;
@@ -1095,9 +1106,80 @@ public class FinanceAppFrame extends JFrame {
 
             System.out.println("FinanceAppFrame: Successfully loaded " + vehicles.size() + " vehicles.");
 
+            // Also refresh the default vehicle combo in settings
+            refreshDefaultVehicleCombo();
+
         } catch (Exception e) {
             System.err.println("FinanceAppFrame: Error loading vehicles from database: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Refreshes the default vehicle combo box in the Settings tab with vehicles from the database.
+     */
+    private void refreshDefaultVehicleCombo() {
+        if (defaultVehicleCombo == null) {
+            return;
+        }
+
+        defaultVehicleCombo.removeAllItems();
+
+        // Try to load from database first
+        if (serviceDispatcher != null) {
+            try {
+                List<org.example.deliveryRecorder.src.vehicle> vehicles = serviceDispatcher.getAllVehicles();
+                if (vehicles != null && !vehicles.isEmpty()) {
+                    for (org.example.deliveryRecorder.src.vehicle v : vehicles) {
+                        String vehicleName = v.getVehicleModel();
+                        String vehicleType = v.getVehicleType();
+                        if (vehicleName == null || vehicleName.isEmpty()) {
+                            continue;
+                        }
+                        String displayStr;
+                        if (vehicleType != null && !vehicleType.isEmpty()) {
+                            displayStr = vehicleType + " - " + vehicleName;
+                        } else {
+                            displayStr = vehicleName;
+                        }
+                        defaultVehicleCombo.addItem(displayStr);
+                    }
+                    System.out.println("FinanceAppFrame: Loaded " + vehicles.size() + " vehicles into default vehicle dropdown.");
+                }
+            } catch (Exception ex) {
+                System.err.println("FinanceAppFrame: Error loading vehicles for default dropdown: " + ex.getMessage());
+            }
+        }
+
+        // Fallback: if no vehicles loaded from database, try carTableModel
+        if (defaultVehicleCombo.getItemCount() == 0 && carTableModel != null) {
+            for (int i = 0; i < carTableModel.getRowCount(); i++) {
+                Object idObj = carTableModel.getValueAt(i, 0);
+                Object nameObj = carTableModel.getValueAt(i, 1);
+                String displayStr = idObj + " - " + nameObj;
+                defaultVehicleCombo.addItem(displayStr);
+            }
+        }
+
+        // Try to select the current vehicle
+        if (serviceDispatcher != null) {
+            try {
+                org.example.deliveryRecorder.src.vehicle currentVehicleObj = serviceDispatcher.getCurrentVehicle();
+                if (currentVehicleObj != null) {
+                    String currentVehicle = currentVehicleObj.getVehicleModel();
+                    if (currentVehicle != null && !currentVehicle.isEmpty()) {
+                        for (int i = 0; i < defaultVehicleCombo.getItemCount(); i++) {
+                            String item = defaultVehicleCombo.getItemAt(i);
+                            if (item != null && item.contains(currentVehicle)) {
+                                defaultVehicleCombo.setSelectedIndex(i);
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                System.err.println("FinanceAppFrame: Error getting current vehicle: " + ex.getMessage());
+            }
         }
     }
 
@@ -1595,9 +1677,37 @@ public class FinanceAppFrame extends JFrame {
         JLabel restaurantLabel = new JLabel("Restaurant");
         deliveryRestaurantField = createInputField();
 
-        JLabel dateLabel = new JLabel("Date (YYYY-MM-DD)");
-        deliveryDateField = createInputField();
-        deliveryDateField.setText("2025-12-01"); // default for demo
+        JLabel dateLabel = new JLabel("Date");
+        // Create date dropdowns for delivery date
+        int currentYear = java.time.Year.now().getValue();
+        Integer[] deliveryYears = new Integer[11];
+        for (int i = 0; i < 11; i++) {
+            deliveryYears[i] = currentYear - 5 + i;
+        }
+        Integer[] deliveryMonths = new Integer[12];
+        for (int i = 0; i < 12; i++) {
+            deliveryMonths[i] = i + 1;
+        }
+        Integer[] deliveryDays = new Integer[31];
+        for (int i = 0; i < 31; i++) {
+            deliveryDays[i] = i + 1;
+        }
+
+        deliveryDateYearCombo = new JComboBox<>(deliveryYears);
+        deliveryDateYearCombo.setSelectedItem(currentYear);
+        deliveryDateMonthCombo = new JComboBox<>(deliveryMonths);
+        deliveryDateMonthCombo.setSelectedItem(java.time.LocalDate.now().getMonthValue());
+        deliveryDateDayCombo = new JComboBox<>(deliveryDays);
+        deliveryDateDayCombo.setSelectedItem(java.time.LocalDate.now().getDayOfMonth());
+
+        // Create a panel to hold the date dropdowns
+        JPanel datePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+        datePanel.setBackground(COLOR_BG_CARD);
+        datePanel.add(deliveryDateYearCombo);
+        datePanel.add(new JLabel("-"));
+        datePanel.add(deliveryDateMonthCombo);
+        datePanel.add(new JLabel("-"));
+        datePanel.add(deliveryDateDayCombo);
 
         JLabel startLabel = new JLabel("Start time (e.g. 17:30)");
         deliveryStartTimeField = createInputField();
@@ -1650,7 +1760,7 @@ public class FinanceAppFrame extends JFrame {
         formPanel.add(restaurantLabel);
         formPanel.add(deliveryRestaurantField);
         formPanel.add(dateLabel);
-        formPanel.add(deliveryDateField);
+        formPanel.add(datePanel);
 
         // Row 2
         formPanel.add(startLabel);
@@ -1754,7 +1864,7 @@ public class FinanceAppFrame extends JFrame {
                 int viewRow = deliveryTable.getSelectedRow();
                 if (viewRow >= 0) {
                     int modelRow = deliveryTable.convertRowIndexToModel(viewRow);
-                    deliveryDateField.setText(Objects.toString(deliveryTableModel.getValueAt(modelRow, 0), ""));
+                    setDeliveryDateFromString(Objects.toString(deliveryTableModel.getValueAt(modelRow, 0), ""));
                     deliveryStartTimeField.setText(Objects.toString(deliveryTableModel.getValueAt(modelRow, 1), ""));
                     deliveryEndTimeField.setText(Objects.toString(deliveryTableModel.getValueAt(modelRow, 2), ""));
                     deliveryRestaurantField.setText(Objects.toString(deliveryTableModel.getValueAt(modelRow, 3), ""));
@@ -1843,7 +1953,7 @@ public class FinanceAppFrame extends JFrame {
         }
 
         String restaurant = deliveryRestaurantField.getText().trim();
-        String date = deliveryDateField.getText().trim();
+        String date = getDeliveryDateString();
         String start = deliveryStartTimeField.getText().trim();
         String end = deliveryEndTimeField.getText().trim();
         String platform = (String) deliveryPlatformCombo.getSelectedItem();
@@ -1932,7 +2042,7 @@ public class FinanceAppFrame extends JFrame {
         int row = deliveryTable.convertRowIndexToModel(selectedViewRow);
 
         String restaurant = deliveryRestaurantField.getText().trim();
-        String date = deliveryDateField.getText().trim();
+        String date = getDeliveryDateString();
         String start = deliveryStartTimeField.getText().trim();
         String end = deliveryEndTimeField.getText().trim();
         String platform = (String) deliveryPlatformCombo.getSelectedItem();
@@ -2130,7 +2240,11 @@ public class FinanceAppFrame extends JFrame {
 
     private void clearDeliveryForm() {
         deliveryRestaurantField.setText("");
-        deliveryDateField.setText("");
+        // Reset date combo boxes to today's date
+        java.time.LocalDate today = java.time.LocalDate.now();
+        deliveryDateYearCombo.setSelectedItem(today.getYear());
+        deliveryDateMonthCombo.setSelectedItem(today.getMonthValue());
+        deliveryDateDayCombo.setSelectedItem(today.getDayOfMonth());
         deliveryStartTimeField.setText("");
         deliveryEndTimeField.setText("");
         deliveryMilesField.setText("");
@@ -2145,6 +2259,43 @@ public class FinanceAppFrame extends JFrame {
             deliveryCarCombo.setSelectedIndex(0);
         }
         resetDeliveryFieldBorders();
+    }
+
+    /**
+     * Gets the delivery date as a YYYY-MM-DD string from the combo boxes.
+     */
+    private String getDeliveryDateString() {
+        try {
+            int year = (Integer) deliveryDateYearCombo.getSelectedItem();
+            int month = (Integer) deliveryDateMonthCombo.getSelectedItem();
+            int day = (Integer) deliveryDateDayCombo.getSelectedItem();
+            // Adjust day if it exceeds the actual days in the month
+            int maxDay = java.time.YearMonth.of(year, month).lengthOfMonth();
+            day = Math.min(day, maxDay);
+            return String.format("%04d-%02d-%02d", year, month, day);
+        } catch (Exception e) {
+            return java.time.LocalDate.now().toString();
+        }
+    }
+
+    /**
+     * Sets the delivery date combo boxes from a YYYY-MM-DD string.
+     */
+    private void setDeliveryDateFromString(String dateStr) {
+        try {
+            if (dateStr != null && !dateStr.isEmpty()) {
+                java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
+                deliveryDateYearCombo.setSelectedItem(date.getYear());
+                deliveryDateMonthCombo.setSelectedItem(date.getMonthValue());
+                deliveryDateDayCombo.setSelectedItem(date.getDayOfMonth());
+            }
+        } catch (Exception e) {
+            // If parsing fails, set to today's date
+            java.time.LocalDate today = java.time.LocalDate.now();
+            deliveryDateYearCombo.setSelectedItem(today.getYear());
+            deliveryDateMonthCombo.setSelectedItem(today.getMonthValue());
+            deliveryDateDayCombo.setSelectedItem(today.getDayOfMonth());
+        }
     }
 
     private void loadDemoDeliveries() {
@@ -2824,7 +2975,7 @@ public class FinanceAppFrame extends JFrame {
         rightPanel.setBackground(COLOR_BG_CARD);
 
         // Transactions table - use class field
-        String[] transactionColumns = {"ID", "Date", "Type", "Amount", "Description"};
+        String[] transactionColumns = {"Date", "Type", "Amount", "Description"};
         bankTransactionTableModel = new DefaultTableModel(transactionColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -2842,7 +2993,7 @@ public class FinanceAppFrame extends JFrame {
         transactionTable.getTableHeader().setForeground(COLOR_TEXT_PRIMARY);
 
         // Custom renderer for amount column to show color based on positive/negative
-        transactionTable.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
+        transactionTable.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                     boolean isSelected, boolean hasFocus, int row, int column) {
@@ -3193,7 +3344,6 @@ public class FinanceAppFrame extends JFrame {
                 }
 
                 transactionTableModel.addRow(new Object[]{
-                        tx.getTransactionId(),
                         tx.getTransactionDate() != null ? tx.getTransactionDate() : "-",
                         tx.getTransactionType(),
                         amountStr,
@@ -3461,6 +3611,16 @@ public class FinanceAppFrame extends JFrame {
         addCarButton.setAlignmentX(Component.LEFT_ALIGNMENT);
         stylePrimaryButton(addCarButton);
 
+        // Create the default vehicle combo box early so it can be updated when adding vehicles
+        defaultVehicleCombo = new JComboBox<>();
+        styleComboBox(defaultVehicleCombo);
+        defaultVehicleCombo.setToolTipText("Select the vehicle to use as default for new deliveries.");
+        defaultVehicleCombo.setPreferredSize(new Dimension(250, 28));
+        defaultVehicleCombo.setMaximumSize(new Dimension(300, 28));
+
+        // Populate with vehicles from database (will be refreshed when serviceDispatcher is set)
+        refreshDefaultVehicleCombo();
+
         addCarButton.addActionListener(e -> {
             String vehicleType = (String) vehicleTypeCombo.getSelectedItem();
             String carName = carNameField.getText().trim();
@@ -3522,6 +3682,9 @@ public class FinanceAppFrame extends JFrame {
             String displayString = carId + " - " + vehicleType + " - " + carName;
             ((DefaultComboBoxModel<String>) deliveryCarCombo.getModel()).addElement(displayString);
 
+            // Also add to the default vehicle combo box
+            defaultVehicleCombo.addItem(displayString);
+
             carNameField.setText("");
             carMpgField.setText("");
             carMpgField.setBorder(normalInputBorder);
@@ -3531,6 +3694,91 @@ public class FinanceAppFrame extends JFrame {
         });
 
         center.add(addCarButton);
+
+        center.add(Box.createVerticalStrut(15));
+
+        // =========================================================
+        // Default Vehicle Selection Section
+        // =========================================================
+        JLabel defaultVehicleLabel = new JLabel("Select Default Vehicle:");
+        defaultVehicleLabel.setFont(primaryFont(Font.BOLD, 13));
+        defaultVehicleLabel.setForeground(COLOR_TEXT_PRIMARY);
+        defaultVehicleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        center.add(defaultVehicleLabel);
+
+        center.add(Box.createVerticalStrut(8));
+
+        JPanel defaultVehiclePanel = new JPanel();
+        defaultVehiclePanel.setBackground(COLOR_BG_MAIN);
+        defaultVehiclePanel.setLayout(new BoxLayout(defaultVehiclePanel, BoxLayout.X_AXIS));
+        defaultVehiclePanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(COLOR_BORDER),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        defaultVehiclePanel.setMaximumSize(new Dimension(420, 50));
+        defaultVehiclePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton setDefaultButton = new JButton("Set as Default");
+        styleSecondaryButton(setDefaultButton);
+        setDefaultButton.setPreferredSize(new Dimension(120, 28));
+
+        setDefaultButton.addActionListener(e -> {
+            String selectedVehicle = (String) defaultVehicleCombo.getSelectedItem();
+            if (selectedVehicle == null || selectedVehicle.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Please select a vehicle from the dropdown.",
+                        "No vehicle selected",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            // Extract vehicle name from display string (format: "id - type - name" or "id - name")
+            String vehicleName = selectedVehicle;
+            if (selectedVehicle.contains(" - ")) {
+                // Get everything after the first " - "
+                vehicleName = selectedVehicle.substring(selectedVehicle.indexOf(" - ") + 3);
+            }
+
+            // Update in database
+            if (serviceDispatcher != null) {
+                try {
+                    serviceDispatcher.setCurrentVehicle(vehicleName);
+                    sidebarCurrentVehicleLabel.setText(vehicleName);
+
+                    // Also update the deliveryCarCombo selection
+                    for (int i = 0; i < deliveryCarCombo.getItemCount(); i++) {
+                        String item = deliveryCarCombo.getItemAt(i);
+                        if (item != null && item.equals(selectedVehicle)) {
+                            deliveryCarCombo.setSelectedIndex(i);
+                            break;
+                        }
+                    }
+
+                    showAutoCloseSuccess("'" + vehicleName + "' set as default vehicle");
+                    System.out.println("FinanceAppFrame: Set '" + vehicleName + "' as default vehicle.");
+                } catch (Exception ex) {
+                    System.err.println("FinanceAppFrame: Error setting default vehicle: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Failed to set default vehicle: " + ex.getMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            } else {
+                // Just update UI if no dispatcher
+                sidebarCurrentVehicleLabel.setText(vehicleName);
+                showAutoCloseSuccess("'" + vehicleName + "' set as default vehicle (local only)");
+            }
+        });
+
+        defaultVehiclePanel.add(defaultVehicleCombo);
+        defaultVehiclePanel.add(Box.createHorizontalStrut(10));
+        defaultVehiclePanel.add(setDefaultButton);
+
+        center.add(defaultVehiclePanel);
 
         center.add(Box.createVerticalStrut(10));
 
@@ -3562,6 +3810,16 @@ public class FinanceAppFrame extends JFrame {
                 try {
                     serviceDispatcher.setCurrentVehicle(carName);
                     sidebarCurrentVehicleLabel.setText(carName);
+
+                    // Also update the defaultVehicleCombo selection
+                    for (int i = 0; i < defaultVehicleCombo.getItemCount(); i++) {
+                        String item = defaultVehicleCombo.getItemAt(i);
+                        if (item != null && item.equals(selectedCar)) {
+                            defaultVehicleCombo.setSelectedIndex(i);
+                            break;
+                        }
+                    }
+
                     showAutoCloseSuccess("'" + carName + "' set as current vehicle");
                     System.out.println("FinanceAppFrame: Set '" + carName + "' as current vehicle.");
                 } catch (Exception ex) {
@@ -3613,17 +3871,57 @@ public class FinanceAppFrame extends JFrame {
         filterPanel.setBackground(COLOR_BG_CARD);
         filterPanel.setLayout(new BoxLayout(filterPanel, BoxLayout.X_AXIS));
 
-        JLabel startLabel = new JLabel("Start date (YYYY-MM-DD): ");
+        JLabel startLabel = new JLabel("Start date: ");
         styleFormLabel(startLabel);
-        reportStartDateField = createInputField();
-        reportStartDateField.setPreferredSize(new Dimension(110, 24));
-        reportStartDateField.setMaximumSize(new Dimension(140, 24));
+
+        // Create start date dropdowns (Year, Month, Day)
+        int currentYear = java.time.Year.now().getValue();
+        Integer[] years = new Integer[11]; // 5 years back, current, 5 years forward
+        for (int i = 0; i < 11; i++) {
+            years[i] = currentYear - 5 + i;
+        }
+        Integer[] months = new Integer[12];
+        for (int i = 0; i < 12; i++) {
+            months[i] = i + 1;
+        }
+        Integer[] days = new Integer[31];
+        for (int i = 0; i < 31; i++) {
+            days[i] = i + 1;
+        }
+
+        reportStartYearCombo = new JComboBox<>(years);
+        reportStartYearCombo.setSelectedItem(currentYear);
+        reportStartYearCombo.setPreferredSize(new Dimension(70, 24));
+        reportStartYearCombo.setMaximumSize(new Dimension(80, 24));
+
+        reportStartMonthCombo = new JComboBox<>(months);
+        reportStartMonthCombo.setSelectedItem(1);
+        reportStartMonthCombo.setPreferredSize(new Dimension(50, 24));
+        reportStartMonthCombo.setMaximumSize(new Dimension(60, 24));
+
+        reportStartDayCombo = new JComboBox<>(days);
+        reportStartDayCombo.setSelectedItem(1);
+        reportStartDayCombo.setPreferredSize(new Dimension(50, 24));
+        reportStartDayCombo.setMaximumSize(new Dimension(60, 24));
 
         JLabel endLabel = new JLabel("   End date: ");
         styleFormLabel(endLabel);
-        reportEndDateField = createInputField();
-        reportEndDateField.setPreferredSize(new Dimension(110, 24));
-        reportEndDateField.setMaximumSize(new Dimension(140, 24));
+
+        // Create end date dropdowns (Year, Month, Day)
+        reportEndYearCombo = new JComboBox<>(years);
+        reportEndYearCombo.setSelectedItem(currentYear);
+        reportEndYearCombo.setPreferredSize(new Dimension(70, 24));
+        reportEndYearCombo.setMaximumSize(new Dimension(80, 24));
+
+        reportEndMonthCombo = new JComboBox<>(months);
+        reportEndMonthCombo.setSelectedItem(12);
+        reportEndMonthCombo.setPreferredSize(new Dimension(50, 24));
+        reportEndMonthCombo.setMaximumSize(new Dimension(60, 24));
+
+        reportEndDayCombo = new JComboBox<>(days);
+        reportEndDayCombo.setSelectedItem(31);
+        reportEndDayCombo.setPreferredSize(new Dimension(50, 24));
+        reportEndDayCombo.setMaximumSize(new Dimension(60, 24));
 
         JButton applyFilterButton = new JButton("Apply");
         styleSecondaryButton(applyFilterButton);
@@ -3634,9 +3932,17 @@ public class FinanceAppFrame extends JFrame {
         });
 
         filterPanel.add(startLabel);
-        filterPanel.add(reportStartDateField);
+        filterPanel.add(reportStartYearCombo);
+        filterPanel.add(new JLabel("-"));
+        filterPanel.add(reportStartMonthCombo);
+        filterPanel.add(new JLabel("-"));
+        filterPanel.add(reportStartDayCombo);
         filterPanel.add(endLabel);
-        filterPanel.add(reportEndDateField);
+        filterPanel.add(reportEndYearCombo);
+        filterPanel.add(new JLabel("-"));
+        filterPanel.add(reportEndMonthCombo);
+        filterPanel.add(new JLabel("-"));
+        filterPanel.add(reportEndDayCombo);
         filterPanel.add(Box.createHorizontalStrut(10));
         filterPanel.add(applyFilterButton);
 
@@ -3748,11 +4054,31 @@ public class FinanceAppFrame extends JFrame {
     private void updateReportStats() {
         LocalDate start = null;
         LocalDate end = null;
-        if (reportStartDateField != null) {
-            start = parseDateSafe(reportStartDateField.getText().trim());
+        if (reportStartYearCombo != null && reportStartMonthCombo != null && reportStartDayCombo != null) {
+            try {
+                int year = (Integer) reportStartYearCombo.getSelectedItem();
+                int month = (Integer) reportStartMonthCombo.getSelectedItem();
+                int day = (Integer) reportStartDayCombo.getSelectedItem();
+                // Adjust day if it exceeds the actual days in the month
+                int maxDay = java.time.YearMonth.of(year, month).lengthOfMonth();
+                day = Math.min(day, maxDay);
+                start = LocalDate.of(year, month, day);
+            } catch (Exception e) {
+                start = null;
+            }
         }
-        if (reportEndDateField != null) {
-            end = parseDateSafe(reportEndDateField.getText().trim());
+        if (reportEndYearCombo != null && reportEndMonthCombo != null && reportEndDayCombo != null) {
+            try {
+                int year = (Integer) reportEndYearCombo.getSelectedItem();
+                int month = (Integer) reportEndMonthCombo.getSelectedItem();
+                int day = (Integer) reportEndDayCombo.getSelectedItem();
+                // Adjust day if it exceeds the actual days in the month
+                int maxDay = java.time.YearMonth.of(year, month).lengthOfMonth();
+                day = Math.min(day, maxDay);
+                end = LocalDate.of(year, month, day);
+            } catch (Exception e) {
+                end = null;
+            }
         }
         updateReportStats(start, end);
     }
