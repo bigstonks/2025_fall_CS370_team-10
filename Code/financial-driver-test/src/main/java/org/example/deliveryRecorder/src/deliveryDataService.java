@@ -18,9 +18,11 @@ public class deliveryDataService {
     private float expenses;
     private String platform;
     private int totalTimeSpent; // In minutes
-    private String[] fromTo; // [StartLocation, EndLocation]
+    private String fromAddress;
+    private String toAddress;
     private int minutesSpentWaitingAtResturant; // In minutes
     private String restaurant;
+    private float tips;
 
 
     // --- Getters and Setters (Fixed Logic) ---
@@ -70,12 +72,19 @@ public class deliveryDataService {
         this.totalTimeSpent = totalTimeSpent;
     }
 
-    public void setFromTo(String[] fromTo) {
-        this.fromTo = fromTo;
+    public void setFromAddress(String fromAddress) {
+
+        this.fromAddress = fromAddress;
+    }
+    public void setToAddress(String toAddress) {
+        this.toAddress = toAddress;
     }
 
     public void setMinutesSpentWaitingAtResturant(int waitingAtRestaurant) {
         this.minutesSpentWaitingAtResturant = waitingAtRestaurant;
+    }
+    public void setTips(float tips) {
+        this.tips = tips;
     }
 
     public void setRestaurant(String restaurant) {
@@ -90,10 +99,25 @@ public class deliveryDataService {
     public float getBasePay() { return basePay; }
     public float getExpenses() { return expenses; }
     public String getPlatform() { return platform; }
-    public int getTotalTimeSpent() { return totalTimeSpent; }
-    public String[] getFromTo() { return fromTo; }
+
+    /**
+     * Calculates and returns the total time spent in minutes based on start and end timestamps.
+     * @return Total time spent in minutes, or 0 if timestamps are invalid
+     */
+    public int getTotalTimeSpent() {
+        if (dateTimeStart <= 0 || dateTimeEnd <= 0 || dateTimeEnd <= dateTimeStart) {
+            return totalTimeSpent; // Fall back to manually set value if timestamps invalid
+        }
+        // Calculate time difference in minutes (timestamps are in milliseconds)
+        long diffMillis = dateTimeEnd - dateTimeStart;
+        return (int) (diffMillis / (1000 * 60));
+    }
+
+    public String getFromAddressfromAdress() { return fromAddress; }
+    public String getToAddressfromAdress() { return toAddress; }
     public int getMinutesSpentWaitingAtResturant() { return minutesSpentWaitingAtResturant; }
     public String getRestaurant() { return restaurant; }
+    public float getTips() { return tips; }
 
     /**
      * Validates the delivery data.
@@ -112,9 +136,9 @@ public class deliveryDataService {
         if (restaurant == null || restaurant.trim().isEmpty()) {
             return "Restaurant name is required.";
         }
-        if (totalTimeSpent <= 0) {
+       /*if (totalTimeSpent <= 0) {
             return "Total time spent must be greater than zero.";
-        }
+        }*/
         return null; // No errors
     }
 

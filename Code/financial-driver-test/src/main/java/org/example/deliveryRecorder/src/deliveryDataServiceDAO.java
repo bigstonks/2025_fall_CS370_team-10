@@ -1,4 +1,4 @@
- package org.example.deliveryRecorder.src;
+package org.example.deliveryRecorder.src;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,30 +28,34 @@ public class deliveryDataServiceDAO {
     }
 
     public boolean saveDelivery(deliveryDataService form, long jobsId) {
-        // Assuming we have a current job ID context.
-        // For this snippet, I'll insert a placeholder job ID or pass it in.
-
-        int currentJobId = 1; // Placeholder
-
-
         String sql = "INSERT INTO deliveryData(" +
-                "time, miles, basePay, extraExpenses, platform, " +
-                "totalTimeSpent, timeSpentWaiting, resturant,  jobsTableId, dateTimeEnd" +
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "startTime, endTime, miles, basePay, extraExpenses, platform, " +
+                "totalTimeSpent, timeSpentWaiting, resturant, jobsTableId, tips, " +
+                "fromLocation, toLocation" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        jdbcTemplate.update(sql,
-                form.getDateTimeStart(),
-                form.getMilesDriven(),
-                form.getBasePay(),
-                form.getExpenses(),
-                form.getPlatform(),
-                form.getTotalTimeSpent(),
-                form.getMinutesSpentWaitingAtResturant(),
-                form.getRestaurant(),
-                currentJobId,
-                form.getDateTimeEnd()
-        );
-        return true;
+        try {
+            jdbcTemplate.update(sql,
+                    form.getDateTimeStart(),
+                    form.getDateTimeEnd(),
+                    form.getMilesDriven(),
+                    form.getBasePay(),
+                    form.getExpenses(),
+                    form.getPlatform(),
+                    form.getTotalTimeSpent(), // Now calculated from start/end times
+                    form.getMinutesSpentWaitingAtResturant(),
+                    form.getRestaurant(),
+                    jobsId,
+                    form.getTips(),
+                    form.getFromAddressfromAdress(),
+                    form.getToAddressfromAdress()
+            );
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error saving delivery: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
 

@@ -21,7 +21,7 @@ public class workPeriodServiceDAO {
      * @return The auto-generated job ID, or -1 if insertion failed
      */
     public long insertWorkPeriod(workPeriodService workPeriod, int userId) {
-        String sql = "INSERT INTO JobsTable (userId, startTime, endTime, vehicle, totalVehicleMiles, totalHoursWorked) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO JobsTable (userId, startTime, endTime, vehicle, totalVehicleMiles) VALUES (?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -33,7 +33,6 @@ public class workPeriodServiceDAO {
                 ps.setLong(3, workPeriod.getEndTime());
                 ps.setString(4, workPeriod.getVehicle());
                 ps.setInt(5, workPeriod.getTotalVehicleMiles());
-                ps.setInt(6, workPeriod.getTotalHoursWorked());
                 return ps;
             }, keyHolder);
 
@@ -53,7 +52,7 @@ public class workPeriodServiceDAO {
      */
     public boolean updateWorkPeriod(long jobId, workPeriodService workPeriod) {
         String sql = "UPDATE JobsTable SET startTime=?, endTime=?, vehicle=?, " +
-                "totalVehicleMiles=?, totalHoursWorked=? WHERE id=?";
+                "totalVehicleMiles=? WHERE jobsId=?";
 
         try {
             int rows = jdbcTemplate.update(sql,
@@ -61,7 +60,6 @@ public class workPeriodServiceDAO {
                     workPeriod.getEndTime(),
                     workPeriod.getVehicle(),
                     workPeriod.getTotalVehicleMiles(),
-                    workPeriod.getTotalHoursWorked(),
                     jobId
             );
             return rows == 1;
@@ -109,6 +107,23 @@ public class workPeriodServiceDAO {
         } catch (Exception e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    /**
+     * Sums all miles from deliveries associated with a specific jobId.
+     * @param jobId The work period/job ID to sum miles for
+     * @return The total miles from all deliveries in that work period, or 0 if none found
+     */
+    public int sumMilesByJobId(long jobId) {
+        String sql = "SELECT COALESCE(SUM(miles), 0) FROM deliveryData WHERE jobsTableId = ?";
+        try {
+            Integer totalMiles = jdbcTemplate.queryForObject(sql, Integer.class, jobId);
+            return totalMiles != null ? totalMiles : 0;
+        } catch (Exception e) {
+            System.out.println("Error summing miles for jobId " + jobId + ": " + e.getMessage());
+            e.printStackTrace();
+            return 0;
         }
     }
 }

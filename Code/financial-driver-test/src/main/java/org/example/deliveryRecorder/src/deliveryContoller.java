@@ -4,6 +4,8 @@ package org.example.deliveryRecorder.src;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
+import java.util.List;
+
 @Controller
 public class deliveryContoller {
 
@@ -12,13 +14,20 @@ public class deliveryContoller {
     private deliveryDataServiceDAO deliveryDAO;
     private long jobsId;
 
-    // The Overview handles the current session/workday state
-    private final deliveryJobOverview jobOverview;
+    // The Overview handles the current session/workday state (injected via Spring)
+    @Autowired
+    private overviewService jobOverview;
 
+    // Default constructor for Spring
     public deliveryContoller() {
-        // Initialize a new session when controller starts (or handle via Dependency Injection)
-        this.jobOverview = new deliveryJobOverview();
     }
+
+    // Constructor for dependency injection
+    @Autowired
+    public deliveryContoller(overviewService overviewService) {
+        this.jobOverview = overviewService;
+    }
+
 
     /**
      * Starts the logic to create a new delivery job.
@@ -53,19 +62,74 @@ public class deliveryContoller {
             return false;
         }
     }
+    /*public boolean setVehicleForWorkPeriod(String vehicleModel) {
+        return workPeriodService.setVehicle(vehicleModel);
+    }*/
+
+
+
+    // --- Overview retrieval methods ---
 
     /**
-     * Ends the current shift and prints/returns summary.
+     * Gets all past deliveries for a user with combined work period data.
+     * @param userId The user ID
+     * @return List of OverviewDTO containing delivery and work period information
      */
-    public void finishShift() {
-        jobOverview.endShift();
-        // Logic to save shift summary to another table could go here
+    public List<overviewService.OverviewDTO> getPastDeliveries(int userId) {
+        return jobOverview.getFullOverviewByUser(userId);
     }
 
     /**
-     * Updates vehicle metadata for the current session.
+     * Gets total earnings for a user across all deliveries.
+     * @param userId The user ID
+     * @return Total earnings (base pay + tips)
      */
-    public void setShiftVehicle(String vehicleName) {
-        jobOverview.setVehicleDetails(vehicleName);
+    public double getTotalEarnings(int userId) {
+        return jobOverview.getTotalEarningsByUser(userId);
+    }
+
+    /**
+     * Gets the total number of deliveries for a user.
+     * @param userId The user ID
+     * @return Total delivery count
+     */
+    public int getTotalDeliveryCount(int userId) {
+        return jobOverview.getTotalDeliveriesByUser(userId);
+    }
+
+    /**
+     * Gets total miles driven for a user across all deliveries.
+     * @param userId The user ID
+     * @return Total miles driven
+     */
+    public int getTotalMiles(int userId) {
+        return jobOverview.getTotalMilesByUser(userId);
+    }
+
+    /**
+     * Gets all work periods for a user.
+     * @param userId The user ID
+     * @return List of work periods
+     */
+    public List<workPeriodService> getAllWorkPeriods(int userId) {
+        return jobOverview.getAllWorkPeriodsByUser(userId);
+    }
+
+    /**
+     * Gets all deliveries for a user.
+     * @param userId The user ID
+     * @return List of deliveries
+     */
+    public List<deliveryDataService> getAllDeliveries(int userId) {
+        return jobOverview.getAllDeliveriesByUser(userId);
+    }
+
+    /**
+     * Gets deliveries for a specific work period.
+     * @param workPeriodId The work period ID
+     * @return List of deliveries in the work period
+     */
+    public List<deliveryDataService> getDeliveriesForWorkPeriod(int workPeriodId) {
+        return jobOverview.getDeliveriesByWorkPeriod(workPeriodId);
     }
 }

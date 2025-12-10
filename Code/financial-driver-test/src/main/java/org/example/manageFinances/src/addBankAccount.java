@@ -17,6 +17,8 @@ public class addBankAccount {
     private double interestRate;
     private double accountFees;
     private double otherIncome;
+    private double[] transactionHistory;
+    // Optional field for future use
 
     // Helper field to identify the user before getting userId
     private String ownerUsername;
@@ -32,7 +34,7 @@ public class addBankAccount {
     public boolean createNewBankAccount(String ownerUsername, String accountName, String accountType,
                                         double initialBalance, double interestRate, double accountFees, double otherIncome) {
         // 1. Set the local fields
-
+        this.ownerUsername = ownerUsername;  // This was missing!
         this.accountName = accountName;
         this.accountType = accountType;
         this.balance = initialBalance;

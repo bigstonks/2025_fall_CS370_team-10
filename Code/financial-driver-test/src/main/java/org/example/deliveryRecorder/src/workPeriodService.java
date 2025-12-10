@@ -22,7 +22,6 @@ public class workPeriodService {
     private long jobsId = -1; // Auto-generated ID from database
     private String vehicle;
     private int totalVehicleMiles;
-    private int totalHoursWorked;
     private long startTime; // changed to long to match DB
     private long endTime;   // changed to long to match DB
 
@@ -82,12 +81,43 @@ public class workPeriodService {
         return jobsId;
     }
 
-    public void setVehicle(String vehicle) {
-        this.vehicle = vehicle;
+    public String setVehicle(String vehicle) {
+
+       return this.vehicle = vehicle;
     }
 
     public void setTotalVehicleMiles(int miles) {
         this.totalVehicleMiles = miles;
+    }
+
+    /**
+     * Calculates and sets the total vehicle miles by summing all miles from deliveries
+     * associated with this work period's jobId in the database.
+     * @return the total miles calculated, or 0 if no deliveries or jobId is not set
+     */
+    public int calculateAndSetTotalVehicleMiles() {
+        if (jobsId == -1) {
+            System.out.println("Error: Work period ID not set. Cannot calculate miles.");
+            return 0;
+        }
+
+        int totalMiles = workPeriodDAO.sumMilesByJobId(jobsId);
+        this.totalVehicleMiles = totalMiles;
+        System.out.println("Total miles calculated for job " + jobsId + ": " + totalMiles);
+        return totalMiles;
+    }
+
+    /**
+     * Calculates and sets the total vehicle miles by summing all miles from deliveries
+     * associated with the specified jobId.
+     * @param targetJobId the jobId to calculate miles for
+     * @return the total miles calculated, or 0 if no deliveries found
+     */
+    public int calculateAndSetTotalVehicleMiles(long targetJobId) {
+        int totalMiles = workPeriodDAO.sumMilesByJobId(targetJobId);
+        this.totalVehicleMiles = totalMiles;
+        System.out.println("Total miles calculated for job " + targetJobId + ": " + totalMiles);
+        return totalMiles;
     }
 
     public void setEndTime(long time) {
@@ -98,10 +128,6 @@ public class workPeriodService {
         this.startTime = time;
     }
 
-    public void setTotalHoursWorked(int hours) {
-        this.totalHoursWorked = hours;
-    }
-
     public String getVehicle() {
         return vehicle;
     }
@@ -110,9 +136,28 @@ public class workPeriodService {
         return totalVehicleMiles;
     }
 
-
+    /**
+     * Calculates the total hours worked based on startTime and endTime.
+     * @return the total hours worked, or 0 if times are not set properly
+     */
     public int getTotalHoursWorked() {
-        return totalHoursWorked;
+        if (startTime <= 0 || endTime <= 0 || endTime <= startTime) {
+            return 0;
+        }
+        long durationMillis = endTime - startTime;
+        return (int) (durationMillis / (1000 * 60 * 60)); // Convert milliseconds to hours
+    }
+
+    /**
+     * Calculates the total minutes worked based on startTime and endTime.
+     * @return the total minutes worked, or 0 if times are not set properly
+     */
+    public int getTotalMinutesWorked() {
+        if (startTime <= 0 || endTime <= 0 || endTime <= startTime) {
+            return 0;
+        }
+        long durationMillis = endTime - startTime;
+        return (int) (durationMillis / (1000 * 60)); // Convert milliseconds to minutes
     }
 
     public long getStartTime() {
