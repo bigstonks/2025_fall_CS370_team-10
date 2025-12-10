@@ -1,0 +1,9 @@
+source_db,table_name,csv_filename,rows_exported,export_time,notes
+delivery.db,JobsTable,delivery__jobstable__20251209_043159.csv,6,2025-12-09T04:31:59.702616Z,blob=base64
+delivery.db,bankAccount,delivery__bankaccount__20251209_043159.csv,3,2025-12-09T04:31:59.702616Z,blob=base64
+delivery.db,deliveryData,delivery__deliverydata__20251209_043159.csv,9,2025-12-09T04:31:59.702616Z,blob=base64
+delivery.db,expenses,delivery__expenses__20251209_043159.csv,3,2025-12-09T04:31:59.702616Z,blob=base64
+delivery.db,netValue,delivery__netvalue__20251209_043159.csv,2,2025-12-09T04:31:59.702616Z,blob=base64
+delivery.db,platform,delivery__platform__20251209_043159.csv,4,2025-12-09T04:31:59.702616Z,blob=base64
+delivery.db,userAccount,delivery__useraccount__20251209_043159.csv,17,2025-12-09T04:31:59.702616Z,blob=base64
+delivery.db,vehicle,delivery__vehicle__20251209_043159.csv,3,2025-12-09T04:31:59.702616Z,blob=base64

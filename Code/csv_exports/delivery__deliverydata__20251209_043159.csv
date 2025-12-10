@@ -1,0 +1,10 @@
+iddeliveryData,toLocation,fromLocation,resturant,basePay,tips,extraExpenses,platform,totalTimeSpent,miles,timeSpentWaiting,startTime,jobsTableId,endTime
+1,234 Oak St,45 Pine Ave,Pizza Palace,15.0,10.5,0.0,DoorDash,30,8,5,1700001000,1001,
+2,789 Maple Ln,10 Elm Rd,Sushi Spot,25.0,25.0,0.0,DoorDash,50,12,10,1700003500,1001,
+3,111 River Walk,55 Bridge St,Burger Joint,30.0,20.25,0.0,Uber Eats,45,15,15,1700105000,1002,
+4,87 Sky Tower,1st Ave Market,Thai Food,12.0,8.0,1.5,Grubhub,25,4,3,1700201000,1003,
+5,20 Park Place,Main St Deli,Sandwich Shop,14.0,6.0,0.0,Grubhub,20,3,2,1700203000,1003,
+6,900 Uptown,Central Kitchen,Mexican Grill,35.0,13.0,0.0,Grubhub,60,6,8,1700205000,1003,
+7,,,Test Restaurant,18.5,0.0,2.25,TestPlatform,35,12,3,1764730755919,1,
+8,,,Test Restaurant,18.5,0.0,2.25,TestPlatform,35,12,3,1764731028001,1,
+9,,,Test Restaurant,18.5,0.0,2.25,TestPlatform,35,12,3,1764731053423,1,
