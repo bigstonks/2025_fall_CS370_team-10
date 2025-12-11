@@ -2,6 +2,7 @@ package org.example.gui;
 
 import org.example.deliveryRecorder.src.overviewService;
 import org.example.driverFinancialServiceDispatcher.serviceDispatcher;
+import org.example.manageFinances.src.selectBankAccount;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -18,6 +19,7 @@ import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JButton;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -3312,6 +3314,18 @@ public class FinanceAppFrame extends JFrame {
                     loadTransactionsForAccount(accountId, transactionTableModel,
                             totalIncomeLabel, totalExpensesLabel, netLabel, transactionCountLabel);
 
+                    // Refresh bank accounts table to show updated balance
+                    loadBankAccountsFromDatabase();
+
+                    // Update the balance in the details panel
+                    selectBankAccount updatedAccount = serviceDispatcher.getBankAccountById(accountId);
+                    if (updatedAccount != null && bankAccountBalanceValue != null) {
+                        bankAccountBalanceValue.setText(String.format("$%.2f", updatedAccount.getBalance()));
+                    }
+
+                    // Update sidebar stats
+                    updateSidebarStats();
+
                     dialog.dispose();
                 } else {
                     JOptionPane.showMessageDialog(dialog,
@@ -4089,28 +4103,286 @@ public class FinanceAppFrame extends JFrame {
 
     /**
      * Creates the Query tab content for the Reports screen.
-     * TODO: Implement query functionality for custom report generation.
+     * Uses reportGenerator module for all query logic.
+     *
+     * Available methods from deliveryCalculator:
+     * - calculateNetProfit(float revenue, float expenses) -> float
+     * - calculuateRevenue(float[] basePay, float[] tips) -> float
+     * - calculateProfitMargin(float revenue, float expenses) -> float
+     * - calculateMedianDowntime(float[] downtime) -> float
+     * - calcualteVehicleDeprication(float starting_value, int miles_driven) -> float
+     * - findOptimalResturnats(String[] resturants, float[] profitList) -> String[]
+     * - calculateExpenses(float[] expenses) -> float
+     * - calculateExpectedProfit(long timestamp, long historicalStartTime, long historicalEndTime, int startHour, int endHour) -> float
+     * - findOptimalWorkHours(int hours, long historicalStartTime, long historicalEndTime) -> String
+     * - compareProfitBetweenPlatforms(String[] platform, float[] profitList) -> String
+     * - gasUsed(double mpg, double milesDriven) -> double
+     * - calculateGasCost(double mpg, double milesDriven, double gasPricePerGallon) -> double
+     * - calculateTotalGasCost(double totalMiles, double mpg, double gasPricePerGallon) -> double
+     *
+     * Available methods from generalReports:
+     * - totalIncome(float[] income) -> float
+     * - averageIncome(float[] income) -> float
+     * - getTotalEarningsFromDB(LocalDateTime startTime, LocalDateTime endTime) -> float
+     * - getAverageEarningsFromDB(LocalDateTime startTime, LocalDateTime endTime) -> float
+     * - getTotalDeliveryIncomeFromDB() -> float
+     * - getCurrentMonthDeliveryIncomeFromDB() -> float
+     * - getDeliveryCountFromDB(LocalDateTime startTime, LocalDateTime endTime) -> int
+     * - getEarningsByPlatformFromDB(LocalDateTime startTime, LocalDateTime endTime) -> Map<String, Float>
      */
     private JPanel createReportsQueryTab() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(COLOR_BG_CARD);
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Placeholder content
-        JLabel placeholderLabel = new JLabel("Query functionality coming soon...");
-        placeholderLabel.setFont(primaryFont(Font.ITALIC, 14));
-        placeholderLabel.setForeground(COLOR_TEXT_SECONDARY);
-        placeholderLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // === TOP: Query selection and date range controls ===
+        JPanel controlsPanel = new JPanel();
+        controlsPanel.setBackground(COLOR_BG_CARD);
+        controlsPanel.setLayout(new BoxLayout(controlsPanel, BoxLayout.Y_AXIS));
 
-        panel.add(placeholderLabel, BorderLayout.CENTER);
+        // Title
+        JLabel title = new JLabel("Run Custom Queries");
+        title.setFont(primaryFont(Font.BOLD, 16));
+        title.setForeground(COLOR_TEXT_PRIMARY);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        controlsPanel.add(title);
+        controlsPanel.add(Box.createVerticalStrut(5));
 
-        // TODO: Add query input fields and results display
-        // - Date range selector
-        // - Platform filter
-        // - Restaurant filter
-        // - Custom SQL query input (for advanced users)
-        // - Results table
-        // - Export functionality
+        JLabel subtitle = new JLabel("Select a query type and date range to generate a custom report.");
+        subtitle.setFont(primaryFont(Font.PLAIN, 12));
+        subtitle.setForeground(COLOR_TEXT_SECONDARY);
+        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        controlsPanel.add(subtitle);
+        controlsPanel.add(Box.createVerticalStrut(15));
+
+        // --- Query selection row ---
+        JPanel querySelectPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        querySelectPanel.setBackground(COLOR_BG_CARD);
+        querySelectPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel queryLabel = new JLabel("Query Type:");
+        styleFormLabel(queryLabel);
+
+        // Query options mapped to reportGenerator/deliveryCalculator/generalReports methods
+        String[] queryOptions = {
+            // From generalReports (database queries)
+            "Total Earnings (Date Range)",           // getTotalEarningsFromDB
+            "Average Earnings per Delivery",         // getAverageEarningsFromDB
+            "Delivery Count (Date Range)",           // getDeliveryCountFromDB
+            "Earnings by Platform",                  // getEarningsByPlatformFromDB
+            "Total Delivery Income (All Time)",      // getTotalDeliveryIncomeFromDB
+            "Current Month Income",                  // getCurrentMonthDeliveryIncomeFromDB
+            // From deliveryCalculator
+            "Find Optimal Work Hours",               // findOptimalWorkHours
+            "Calculate Expected Profit (Day/Hour)",  // calculateExpectedProfit
+            "Compare Platform Profits",              // compareProfitBetweenPlatforms
+            "Find Optimal Restaurants",              // findOptimalResturnats
+            "Calculate Gas Cost",                    // calculateGasCost / calculateTotalGasCost
+            "Calculate Vehicle Depreciation",        // calcualteVehicleDeprication
+            "Calculate Net Profit",                  // calculateNetProfit
+            "Calculate Profit Margin"                // calculateProfitMargin
+        };
+        JComboBox<String> queryCombo = new JComboBox<>(queryOptions);
+        styleComboBox(queryCombo);
+        queryCombo.setPreferredSize(new Dimension(280, 28));
+
+        querySelectPanel.add(queryLabel);
+        querySelectPanel.add(queryCombo);
+        controlsPanel.add(querySelectPanel);
+        controlsPanel.add(Box.createVerticalStrut(10));
+
+        // --- Date range row ---
+        JPanel dateRangePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        dateRangePanel.setBackground(COLOR_BG_CARD);
+        dateRangePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Create date dropdowns
+        int currentYear = java.time.Year.now().getValue();
+        Integer[] years = new Integer[11];
+        for (int i = 0; i < 11; i++) {
+            years[i] = currentYear - 5 + i;
+        }
+        Integer[] months = new Integer[12];
+        for (int i = 0; i < 12; i++) {
+            months[i] = i + 1;
+        }
+        Integer[] days = new Integer[31];
+        for (int i = 0; i < 31; i++) {
+            days[i] = i + 1;
+        }
+
+        // Start date
+        JLabel startDateLabel = new JLabel("Start Date:");
+        styleFormLabel(startDateLabel);
+
+        JComboBox<Integer> queryStartYearCombo = new JComboBox<>(years);
+        queryStartYearCombo.setSelectedItem(currentYear);
+        queryStartYearCombo.setPreferredSize(new Dimension(70, 24));
+
+        JComboBox<Integer> queryStartMonthCombo = new JComboBox<>(months);
+        queryStartMonthCombo.setSelectedItem(1);
+        queryStartMonthCombo.setPreferredSize(new Dimension(50, 24));
+
+        JComboBox<Integer> queryStartDayCombo = new JComboBox<>(days);
+        queryStartDayCombo.setSelectedItem(1);
+        queryStartDayCombo.setPreferredSize(new Dimension(50, 24));
+
+        // End date
+        JLabel endDateLabel = new JLabel("End Date:");
+        styleFormLabel(endDateLabel);
+
+        JComboBox<Integer> queryEndYearCombo = new JComboBox<>(years);
+        queryEndYearCombo.setSelectedItem(currentYear);
+        queryEndYearCombo.setPreferredSize(new Dimension(70, 24));
+
+        JComboBox<Integer> queryEndMonthCombo = new JComboBox<>(months);
+        queryEndMonthCombo.setSelectedItem(12);
+        queryEndMonthCombo.setPreferredSize(new Dimension(50, 24));
+
+        JComboBox<Integer> queryEndDayCombo = new JComboBox<>(days);
+        queryEndDayCombo.setSelectedItem(31);
+        queryEndDayCombo.setPreferredSize(new Dimension(50, 24));
+
+        dateRangePanel.add(startDateLabel);
+        dateRangePanel.add(queryStartYearCombo);
+        dateRangePanel.add(new JLabel("-"));
+        dateRangePanel.add(queryStartMonthCombo);
+        dateRangePanel.add(new JLabel("-"));
+        dateRangePanel.add(queryStartDayCombo);
+        dateRangePanel.add(Box.createHorizontalStrut(20));
+        dateRangePanel.add(endDateLabel);
+        dateRangePanel.add(queryEndYearCombo);
+        dateRangePanel.add(new JLabel("-"));
+        dateRangePanel.add(queryEndMonthCombo);
+        dateRangePanel.add(new JLabel("-"));
+        dateRangePanel.add(queryEndDayCombo);
+
+        controlsPanel.add(dateRangePanel);
+        controlsPanel.add(Box.createVerticalStrut(15));
+
+        // --- Run Query button ---
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        buttonPanel.setBackground(COLOR_BG_CARD);
+        buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton runQueryButton = new JButton("Run Query");
+        stylePrimaryButton(runQueryButton);
+
+        JButton clearResultsButton = new JButton("Clear Results");
+        styleSecondaryButton(clearResultsButton);
+
+        buttonPanel.add(runQueryButton);
+        buttonPanel.add(Box.createHorizontalStrut(10));
+        buttonPanel.add(clearResultsButton);
+
+        controlsPanel.add(buttonPanel);
+
+        panel.add(controlsPanel, BorderLayout.NORTH);
+
+        // === CENTER: Results display area ===
+        JPanel resultsPanel = new JPanel(new BorderLayout());
+        resultsPanel.setBackground(COLOR_BG_CARD);
+        resultsPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(COLOR_BORDER),
+                        "Query Results",
+                        0, 0,
+                        primaryFont(Font.BOLD, 12),
+                        COLOR_TEXT_SECONDARY
+                ),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        // Results text area (for displaying query output)
+        JTextArea queryResultsArea = new JTextArea();
+        queryResultsArea.setBackground(COLOR_BG_INPUT);
+        queryResultsArea.setForeground(COLOR_TEXT_PRIMARY);
+        queryResultsArea.setCaretColor(COLOR_TEXT_PRIMARY);
+        queryResultsArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+        queryResultsArea.setEditable(false);
+        queryResultsArea.setLineWrap(true);
+        queryResultsArea.setWrapStyleWord(true);
+        queryResultsArea.setText("Select a query type and date range, then click 'Run Query' to see results.\n\n" +
+                "Available Query Types:\n" +
+                "======================\n\n" +
+                "FROM generalReports (Database Queries):\n" +
+                "  • Total Earnings (Date Range) - getTotalEarningsFromDB()\n" +
+                "  • Average Earnings per Delivery - getAverageEarningsFromDB()\n" +
+                "  • Delivery Count (Date Range) - getDeliveryCountFromDB()\n" +
+                "  • Earnings by Platform - getEarningsByPlatformFromDB()\n" +
+                "  • Total Delivery Income (All Time) - getTotalDeliveryIncomeFromDB()\n" +
+                "  • Current Month Income - getCurrentMonthDeliveryIncomeFromDB()\n\n" +
+                "FROM deliveryCalculator:\n" +
+                "  • Find Optimal Work Hours - findOptimalWorkHours()\n" +
+                "  • Calculate Expected Profit (Day/Hour) - calculateExpectedProfit()\n" +
+                "  • Compare Platform Profits - compareProfitBetweenPlatforms()\n" +
+                "  • Find Optimal Restaurants - findOptimalResturnats()\n" +
+                "  • Calculate Gas Cost - calculateGasCost()\n" +
+                "  • Calculate Vehicle Depreciation - calcualteVehicleDeprication()\n" +
+                "  • Calculate Net Profit - calculateNetProfit()\n" +
+                "  • Calculate Profit Margin - calculateProfitMargin()");
+
+        JScrollPane resultsScroll = new JScrollPane(queryResultsArea);
+        resultsScroll.getViewport().setBackground(COLOR_BG_INPUT);
+        resultsScroll.setBorder(BorderFactory.createLineBorder(COLOR_BORDER));
+
+        resultsPanel.add(resultsScroll, BorderLayout.CENTER);
+
+        panel.add(resultsPanel, BorderLayout.CENTER);
+
+        // === Button actions ===
+        clearResultsButton.addActionListener(e -> {
+            queryResultsArea.setText("Select a query type and date range, then click 'Run Query' to see results.");
+        });
+
+        runQueryButton.addActionListener(e -> {
+            // Get selected query type
+            String selectedQuery = (String) queryCombo.getSelectedItem();
+
+            // Get date range
+            LocalDate startDate, endDate;
+            try {
+                int startYear = (Integer) queryStartYearCombo.getSelectedItem();
+                int startMonth = (Integer) queryStartMonthCombo.getSelectedItem();
+                int startDay = (Integer) queryStartDayCombo.getSelectedItem();
+                int maxStartDay = java.time.YearMonth.of(startYear, startMonth).lengthOfMonth();
+                startDay = Math.min(startDay, maxStartDay);
+                startDate = LocalDate.of(startYear, startMonth, startDay);
+
+                int endYear = (Integer) queryEndYearCombo.getSelectedItem();
+                int endMonth = (Integer) queryEndMonthCombo.getSelectedItem();
+                int endDay = (Integer) queryEndDayCombo.getSelectedItem();
+                int maxEndDay = java.time.YearMonth.of(endYear, endMonth).lengthOfMonth();
+                endDay = Math.min(endDay, maxEndDay);
+                endDate = LocalDate.of(endYear, endMonth, endDay);
+            } catch (Exception ex) {
+                queryResultsArea.setText("Error: Invalid date selection. Please check your date inputs.");
+                return;
+            }
+
+            if (startDate.isAfter(endDate)) {
+                queryResultsArea.setText("Error: Start date must be before or equal to end date.");
+                return;
+            }
+
+            // TODO: Implement query execution using reportGenerator module
+            // The reportGenerator should be accessed via serviceDispatcher
+            // Example: serviceDispatcher.getReportGenerator().setDateRange(startDateTime, endDateTime);
+            //          serviceDispatcher.getReportGenerator().getDeliveryReportsData();
+
+            StringBuilder result = new StringBuilder();
+            result.append("Query: ").append(selectedQuery).append("\n");
+            result.append("Date Range: ").append(startDate).append(" to ").append(endDate).append("\n");
+            result.append("=".repeat(50)).append("\n\n");
+            result.append("TODO: Implement query execution using reportGenerator module.\n\n");
+            result.append("This query should call the appropriate method from:\n");
+            result.append("  - reportGenerator (orchestrates deliveryCalculator and generalReports)\n");
+            result.append("  - deliveryCalculator (calculation methods)\n");
+            result.append("  - generalReports (database query methods)\n\n");
+            result.append("The serviceDispatcher needs to expose the reportGenerator service.\n");
+
+            queryResultsArea.setText(result.toString());
+        });
 
         return panel;
     }
