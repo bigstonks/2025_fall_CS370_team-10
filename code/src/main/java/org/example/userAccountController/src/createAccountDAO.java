@@ -71,11 +71,17 @@ public class createAccountDAO {
 
     public void create(createAccount account) {
         String sql = "INSERT INTO userAccount (userName, password, emailAddress, authorization) VALUES (?, ?, ?, ?)";
-        jdbcTemplate.update(sql,
-            account.getUsername(), 
-            account.getPassword(),
-            account.getEmail(),
-            "user"
-        );
+        try {
+            jdbcTemplate.update(sql,
+                account.getUsername(),
+                account.getPassword(),
+                account.getEmail(),
+                "user"
+            );
+            System.out.println("createAccountDAO: Account created successfully for " + account.getUsername());
+        } catch (Exception e) {
+            System.err.println("createAccountDAO: Failed to create account - " + e.getMessage());
+            throw e; // Re-throw to let caller handle it
+        }
     }
 }

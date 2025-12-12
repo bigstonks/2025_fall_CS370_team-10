@@ -17,12 +17,18 @@ public class loginAuthenticationDAO{
      * Returns null if user not found.
      */
     public String getPasswordForUser(String username) {
-
         String sql = "SELECT password FROM userAccount WHERE userName = ?";
         try {
-            return jdbcTemplate.queryForObject(sql, new Object[]{username}, String.class);
+            String password = jdbcTemplate.queryForObject(sql, new Object[]{username}, String.class);
+            System.out.println("loginAuthenticationDAO: Found user '" + username + "' in database");
+            return password;
         } catch (EmptyResultDataAccessException e) {
+            System.out.println("loginAuthenticationDAO: User '" + username + "' not found in database");
             return null; // User not found
+        } catch (Exception e) {
+            System.err.println("loginAuthenticationDAO: Error querying database - " + e.getMessage());
+            e.printStackTrace();
+            return null;
         }
     }
 

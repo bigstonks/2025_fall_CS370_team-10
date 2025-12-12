@@ -1251,6 +1251,17 @@ public class FinanceAppFrame extends JFrame {
             return;
         }
 
+        if (password.length() < 8) {
+            profilePasswordField.setBorder(errorBorder());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Password must be at least 8 characters.",
+                    "Input error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
         if (!email.contains("@") || !email.contains(".")) {
             profileEmailField.setBorder(errorBorder());
             JOptionPane.showMessageDialog(
@@ -3693,23 +3704,23 @@ public class FinanceAppFrame extends JFrame {
 
         JLabel typeLabel = new JLabel("Vehicle type");
         String[] vehicleTypes = {"Car", "Motorcycle", "Bike"};
-        JComboBox<String> vehicleTypeCombo = new JComboBox<>(vehicleTypes);
-        styleComboBox(vehicleTypeCombo);
-        vehicleTypeCombo.setToolTipText("Select the type of vehicle.");
+        settingsVehicleTypeCombo = new JComboBox<>(vehicleTypes);
+        styleComboBox(settingsVehicleTypeCombo);
+        settingsVehicleTypeCombo.setToolTipText("Select the type of vehicle.");
 
         JLabel nameLabel = new JLabel("Vehicle name");
-        JTextField carNameField = createInputField();
+        settingsCarNameField = createInputField();
 
         JLabel mpgLabel = new JLabel("MPG");
-        JTextField carMpgField = createInputField();
+        settingsCarMpgField = createInputField();
 
         JLabel startingMilesLabel = new JLabel("Starting Miles");
-        JTextField startingMilesField = createInputField();
-        startingMilesField.setToolTipText("Odometer reading when you acquired the vehicle");
+        settingsStartingMilesField = createInputField();
+        settingsStartingMilesField.setToolTipText("Odometer reading when you acquired the vehicle");
 
         JLabel purchasePriceLabel = new JLabel("Purchase Price *");
-        JTextField purchasePriceField = createInputField();
-        purchasePriceField.setToolTipText("Required: What you paid for the vehicle (used for depreciation calculations)");
+        settingsPurchasePriceField = createInputField();
+        settingsPurchasePriceField.setToolTipText("Required: What you paid for the vehicle (used for depreciation calculations)");
 
         styleFormLabel(typeLabel);
         styleFormLabel(nameLabel);
@@ -3719,15 +3730,15 @@ public class FinanceAppFrame extends JFrame {
         purchasePriceLabel.setForeground(COLOR_ACCENT); // Highlight required field
 
         card.add(typeLabel);
-        card.add(vehicleTypeCombo);
+        card.add(settingsVehicleTypeCombo);
         card.add(nameLabel);
-        card.add(carNameField);
+        card.add(settingsCarNameField);
         card.add(mpgLabel);
-        card.add(carMpgField);
+        card.add(settingsCarMpgField);
         card.add(startingMilesLabel);
-        card.add(startingMilesField);
+        card.add(settingsStartingMilesField);
         card.add(purchasePriceLabel);
-        card.add(purchasePriceField);
+        card.add(settingsPurchasePriceField);
 
         center.add(card);
         center.add(Box.createVerticalStrut(10));
@@ -3747,6 +3758,16 @@ public class FinanceAppFrame extends JFrame {
         refreshDefaultVehicleCombo();
 
         addCarButton.addActionListener(e -> {
+            // Safety check for initialization
+            if (settingsVehicleTypeCombo == null) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Settings not fully initialized. Please try again.",
+                        "Initialization Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
             String vehicleType = (String) settingsVehicleTypeCombo.getSelectedItem();
             String carName = settingsCarNameField.getText().trim();
             String mpgText = settingsCarMpgField.getText().trim();
@@ -5842,9 +5863,15 @@ public class FinanceAppFrame extends JFrame {
         double expenses = computeTotalGasCostFromDeliveries();
         double net = totalEarnings - expenses;
 
-        sidebarTotalRevenueLabel.setText(String.format("Earnings: $%.2f", totalEarnings));
-        sidebarTotalExpensesLabel.setText(String.format("Gas est: $%.2f", expenses));
-        sidebarNetLabel.setText(String.format("$%.2f", net));
+        if (sidebarTotalRevenueLabel != null) {
+            sidebarTotalRevenueLabel.setText(String.format("Earnings: $%.2f", totalEarnings));
+        }
+        if (sidebarTotalExpensesLabel != null) {
+            sidebarTotalExpensesLabel.setText(String.format("Gas est: $%.2f", expenses));
+        }
+        if (sidebarNetLabel != null) {
+            sidebarNetLabel.setText(String.format("$%.2f", net));
+        }
 
         if (deliveriesSummaryLabel != null) {
             deliveriesSummaryLabel.setText(
