@@ -5392,11 +5392,18 @@ public class FinanceAppFrame extends JFrame {
             serviceDispatcher.setEstimatedExpenses(expenses);
             serviceDispatcher.setTargetWorkHoursPerDay(workHours);
 
+            // Load other income from bank accounts
+            serviceDispatcher.loadOtherIncomeFromBankAccounts();
+            float otherIncome = serviceDispatcher.getTotalOtherIncome();
+
             result.append("───────────────────────────────────────────────────\n");
             result.append("INPUT PARAMETERS\n");
             result.append("───────────────────────────────────────────────────\n");
             result.append(String.format("Target Monthly Income: $%.2f\n", targetIncome));
             result.append(String.format("Estimated Monthly Expenses: $%.2f\n", expenses));
+            if (otherIncome > 0) {
+                result.append(String.format("Other Income (from bank accounts): $%.2f\n", otherIncome));
+            }
             result.append(String.format("Target Work Hours/Day: %d hours\n", workHours));
             result.append(String.format("Analysis Period: Last %d days\n\n", analysisDays));
 

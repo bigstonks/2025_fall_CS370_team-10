@@ -28,6 +28,7 @@ public class reportGenerator {
     // Financial plan settings
     private float targetMonthlyIncome;
     private float estimatedExpenses;
+    private float otherMonthlyIncome = 0.0f;  // Other income from bank accounts
     private int targetWorkHoursPerDay = 6;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -178,6 +179,27 @@ public class reportGenerator {
     }
 
     /**
+     * Sets the other monthly income from bank accounts for financial planning.
+     * This includes income from sources other than delivery work.
+     *
+     * @param otherIncome Other monthly income in dollars
+     */
+    public void setOtherMonthlyIncome(float otherIncome) {
+        if (otherIncome < 0) {
+            throw new IllegalArgumentException("Other income must be non-negative");
+        }
+        this.otherMonthlyIncome = otherIncome;
+    }
+
+    /**
+     * Gets the current other monthly income setting.
+     * @return Other monthly income in dollars
+     */
+    public float getOtherMonthlyIncome() {
+        return this.otherMonthlyIncome;
+    }
+
+    /**
      * Sets the target work hours per day for optimization.
      *
      * @param hours Number of hours to work per day (1-24)
@@ -191,6 +213,7 @@ public class reportGenerator {
 
     /**
      * Creates a financial plan based on historical data and user goals.
+     * Now includes other income from bank accounts in calculations.
      *
      * @return FinancialPlan containing recommendations and projections
      */
@@ -199,12 +222,17 @@ public class reportGenerator {
         float totalHistoricalEarnings = generalReports.getTotalEarningsFromDB(startDate, endDate);
         int totalDeliveries = generalReports.getDeliveryCountFromDB(startDate, endDate);
         
-        // Calculate metrics
+        // Calculate metrics (delivery income only)
         float dailyAverage = totalHistoricalEarnings / Math.max(1, daysToAnalyze);
-        float projectedMonthlyIncome = dailyAverage * 30;
+        float projectedDeliveryIncome = dailyAverage * 30;
+
+        // Add other income from bank accounts to get total projected income
+        float projectedMonthlyIncome = projectedDeliveryIncome + otherMonthlyIncome;
+
+        // Calculate income gap (now considering other income)
         float incomeGap = targetMonthlyIncome - projectedMonthlyIncome;
         
-        // Calculate required additional daily earnings
+        // Calculate required additional daily earnings from deliveries
         float additionalDailyRequired = incomeGap > 0 ? incomeGap / 30 : 0;
         
         // Get optimal work schedule
@@ -220,9 +248,17 @@ public class reportGenerator {
         StringBuilder recommendations = new StringBuilder();
         recommendations.append("=== Financial Plan Recommendations ===\n\n");
         
+        // Show income breakdown
+        recommendations.append("--- Income Breakdown ---\n");
+        recommendations.append(String.format("Projected Delivery Income: $%.2f/month\n", projectedDeliveryIncome));
+        if (otherMonthlyIncome > 0) {
+            recommendations.append(String.format("Other Income (from bank accounts): $%.2f/month\n", otherMonthlyIncome));
+        }
+        recommendations.append(String.format("Total Projected Income: $%.2f/month\n\n", projectedMonthlyIncome));
+
         if (incomeGap > 0) {
             recommendations.append(String.format("⚠ You need an additional $%.2f/month to meet your goal.\n", incomeGap));
-            recommendations.append(String.format("   That's approximately $%.2f more per day.\n\n", additionalDailyRequired));
+            recommendations.append(String.format("   That's approximately $%.2f more per day from deliveries.\n\n", additionalDailyRequired));
         } else {
             recommendations.append("✓ You're on track to meet or exceed your monthly income goal!\n\n");
         }
@@ -231,11 +267,11 @@ public class reportGenerator {
         recommendations.append(optimalSchedule).append("\n");
         
         if (projectedNetProfit < 0) {
-            recommendations.append(String.format("⚠ Warning: Projected expenses ($%.2f) exceed projected income ($%.2f).\n",
+            recommendations.append(String.format("\n⚠ Warning: Projected expenses ($%.2f) exceed projected income ($%.2f).\n",
                     estimatedExpenses, projectedMonthlyIncome));
             recommendations.append("   Consider reducing expenses or increasing work hours.\n");
         } else {
-            recommendations.append(String.format("✓ Projected monthly net profit: $%.2f\n", projectedNetProfit));
+            recommendations.append(String.format("\n✓ Projected monthly net profit: $%.2f\n", projectedNetProfit));
         }
 
         return new FinancialPlan(

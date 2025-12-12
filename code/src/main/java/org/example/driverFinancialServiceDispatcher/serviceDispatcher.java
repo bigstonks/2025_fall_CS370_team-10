@@ -679,6 +679,38 @@ public class serviceDispatcher {
         }
 
         /**
+         * Gets the total other income from all bank accounts for the current user.
+         * @return Total other income across all accounts
+         */
+        public float getTotalOtherIncome() {
+            if (currentUserId == -1) {
+                return 0.0f;
+            }
+            List<selectBankAccount> accounts = selectBankAccountDAO.getAccountsForUser(currentUserId);
+            float totalOtherIncome = 0.0f;
+            for (selectBankAccount account : accounts) {
+                totalOtherIncome += account.getOtherIncome();
+            }
+            return totalOtherIncome;
+        }
+
+        /**
+         * Gets the total account fees from all bank accounts for the current user.
+         * @return Total account fees across all accounts
+         */
+        public float getTotalAccountFees() {
+            if (currentUserId == -1) {
+                return 0.0f;
+            }
+            List<selectBankAccount> accounts = selectBankAccountDAO.getAccountsForUser(currentUserId);
+            float totalFees = 0.0f;
+            for (selectBankAccount account : accounts) {
+                totalFees += account.getAccountFees();
+            }
+            return totalFees;
+        }
+
+        /**
          * Deletes a bank account.
          * @param accountId The account ID to delete
          */
@@ -1047,6 +1079,23 @@ public class serviceDispatcher {
          */
         public void setEstimatedExpenses(float expenses) {
             reportGeneratorService.setEstimatedExpenses(expenses);
+        }
+
+        /**
+         * Sets the other monthly income (from bank accounts) for financial planning.
+         * @param otherIncome Other monthly income in dollars
+         */
+        public void setOtherMonthlyIncome(float otherIncome) {
+            reportGeneratorService.setOtherMonthlyIncome(otherIncome);
+        }
+
+        /**
+         * Automatically loads other income from user's bank accounts into the financial plan.
+         * This pulls the total "other income" values from all bank accounts.
+         */
+        public void loadOtherIncomeFromBankAccounts() {
+            float totalOtherIncome = getTotalOtherIncome();
+            reportGeneratorService.setOtherMonthlyIncome(totalOtherIncome);
         }
 
         /**
