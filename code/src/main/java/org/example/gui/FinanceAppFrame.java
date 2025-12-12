@@ -2552,12 +2552,12 @@ public class FinanceAppFrame extends JFrame {
         JPanel expensesCard = createSummaryCardWithLabel("Total Expenses", summaryExpensesValueLabel, new Color(239, 68, 68));
 
         // Net Position Card
-        JPanel netCard = createSummaryCardWithLabel("Net Position", summaryNetValueLabel, COLOR_ACCENT);
+       // JPanel netCard = createSummaryCardWithLabel("Net Position", summaryNetValueLabel, COLOR_ACCENT);
 
         summaryCardsPanel.add(assetsCard);
         summaryCardsPanel.add(incomeCard);
         summaryCardsPanel.add(expensesCard);
-        summaryCardsPanel.add(netCard);
+       // summaryCardsPanel.add(netCard);
 
         panel.add(summaryCardsPanel, BorderLayout.NORTH);
 
@@ -2774,14 +2774,14 @@ public class FinanceAppFrame extends JFrame {
             float totalAssets = serviceDispatcher.getCurrentUserTotalAssets();
             float totalIncome = serviceDispatcher.getCurrentUserTotalIncome();
             float totalExpenses = serviceDispatcher.getCurrentUserTotalExpenses();
-            float netPosition = totalAssets + totalIncome - totalExpenses;
+            //float netPosition = totalAssets + totalIncome - totalExpenses;
 
             // Update summary cards
             assetsLabel.setText(String.format("$%.2f", totalAssets));
             incomeLabel.setText(String.format("$%.2f", totalIncome));
             expensesLabel.setText(String.format("$%.2f", totalExpenses));
-            netLabel.setText(String.format("%s$%.2f", netPosition < 0 ? "-" : "", Math.abs(netPosition)));
-            netLabel.setForeground(netPosition >= 0 ? COLOR_SUCCESS : new Color(239, 68, 68));
+            //netLabel.setText(String.format("%s$%.2f", netPosition < 0 ? "-" : "", Math.abs(netPosition)));
+            //netLabel.setForeground(netPosition >= 0 ? COLOR_SUCCESS : new Color(239, 68, 68));
 
             // Get all transactions
             List<org.example.manageFinances.src.generalFinancialData.TransactionSummary> transactions =
@@ -2880,7 +2880,7 @@ public class FinanceAppFrame extends JFrame {
             float totalAssets = serviceDispatcher.getCurrentUserTotalAssets();
             float totalIncome = serviceDispatcher.getCurrentUserTotalIncome();
             float totalExpenses = serviceDispatcher.getCurrentUserTotalExpenses();
-            float netPosition = totalAssets + totalIncome - totalExpenses;
+            //float netPosition = totalAssets + totalIncome - totalExpenses;
 
             // Update summary cards
             if (summaryAssetsValueLabel != null) {
@@ -2892,10 +2892,10 @@ public class FinanceAppFrame extends JFrame {
             if (summaryExpensesValueLabel != null) {
                 summaryExpensesValueLabel.setText(String.format("$%.2f", totalExpenses));
             }
-            if (summaryNetValueLabel != null) {
+            /*if (summaryNetValueLabel != null) {
                 summaryNetValueLabel.setText(String.format("%s$%.2f", netPosition < 0 ? "-" : "", Math.abs(netPosition)));
                 summaryNetValueLabel.setForeground(netPosition >= 0 ? COLOR_SUCCESS : new Color(239, 68, 68));
-            }
+            }*/
 
             // Get all transactions
             List<org.example.manageFinances.src.generalFinancialData.TransactionSummary> transactions =
@@ -3534,7 +3534,7 @@ public class FinanceAppFrame extends JFrame {
         // Account Type
         JLabel accountTypeLabel = new JLabel("Account Type");
         styleFormLabel(accountTypeLabel);
-        String[] accountTypes = {"Checking", "Savings", "Credit Card", "Investment", "Other"};
+        String[] accountTypes = {"Checking", "Savings", "Other"};
         JComboBox<String> accountTypeCombo = new JComboBox<>(accountTypes);
         styleComboBox(accountTypeCombo);
 
