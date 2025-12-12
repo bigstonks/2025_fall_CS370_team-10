@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DdlMappings">
+    <mapping uuid="4ac955a8-61da-4cdf-9521-1597ad946acb" name="delivery.db Mapping">
+      <data-sources db="9859a1f0-b781-4639-80cc-f7b2c270fd2a" ddl="5408ea56-4c47-424c-885a-f2069f9fa978" />
+    </mapping>
+  </component>
+</project>

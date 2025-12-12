@@ -1,0 +1,15 @@
+origin	https://github.com/bigstonks/2025_fall_CS370_team-10 (fetch)
+origin	https://github.com/bigstonks/2025_fall_CS370_team-10 (push)
+* main
+  remotes/origin/AQ-12-8-beta-branch
+  remotes/origin/AQ-Delta
+  remotes/origin/AQ-newbeta
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/guiversion1
+  remotes/origin/jaden-harrison-patch-1-consolev1
+  remotes/origin/main
+  remotes/origin/pre-release
+---  
+c3012ca Delete code/src/main/java/org/example/Bank.java
+a7f3767 Delete code/src/main/java/org/example/Bank.form
+a8ceeab name change
